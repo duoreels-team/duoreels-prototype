@@ -23,8 +23,10 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# Local env files
-.env*.local
+# Local env files — never commit
+.env
+.env.*
+!.env.example
 
 # TypeScript
 *.tsbuildinfo
