@@ -11,6 +11,7 @@ Match the Figma. Use tokens, never ad-hoc values.
 - Type: Big Shoulders Display Black, caps only — wordmark 48, main button 21 (max 4 words), tags 15. Geist for everything you read — title Bold 28, heading Bold 20, row SemiBold 16, body 15/140%, Geist Mono 13 for caps labels, time and eyebrows. Minimum 13 (Geist Mono caps labels & timecodes only). Secondary/meta text: Geist SemiBold 14. Nothing smaller than 13. No italics.
 - Spacing: 8 base · 16 screen edges · 8 between covers · 12 rows · 24 between groups. Canvas 390×844. Tap targets ≥ 44.
 - Radius: cards 16 · covers 12 · inputs 12 · tags 6 · buttons and chips full pill · video 0.
+- Icons: only use `<Icon name="…" />` from app/src/components/brand/icons.tsx (same 51 names as the prototype's ICO). 24 grid, 1.75 stroke, outline; `-filled` only for a selected state. Every AI action uses `spark` (it carries the Creator crown). Don't draw new icons or add features without asking.
 - Buttons: pill, 52 high. Main = violet + Big Shoulders; secondary = Control + Geist 15. One main button per screen. The slant is for brand graphics only, never on buttons.
 - Video is vertical 9:16, edge to edge. Covers are square, centre-cropped; All projects grid = 3 per row.
 - Tab bar: Projects · Marketplace · Me (glass).

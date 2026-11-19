@@ -12,43 +12,15 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Color, Font, MinTap, Radius, Space, Type } from '@/constants/brand';
 
-/* ---------- icons (prototype ICO set: 24×24, stroke 1.8, round) ---------- */
+// Icons: unified Duoreels set, same names as the prototype (see ./icons.tsx)
+import { Icon } from './icons';
 
-const ICONS = {
-  back: <Path d="m15 5-7 7 7 7" />,
-  camera: (
-    <>
-      <Path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z" />
-      <Circle cx={12} cy={13} r={3.5} />
-    </>
-  ),
-  video: (
-    <>
-      <Rect x={3} y={6.5} width={13} height={11} rx={2} />
-      <Path d="m16 10.5 5-3v9l-5-3" />
-    </>
-  ),
-  pen: (
-    <>
-      <Path d="M4 20h4L19 9l-4-4L4 16z" />
-      <Path d="m13.5 6.5 4 4" />
-    </>
-  ),
-} as const;
+export { Icon };
+export type { IconName } from './icons';
 
-export type IconName = keyof typeof ICONS;
-
-export function Icon({ name, size = 24, color = Color.white, strokeWidth = 1.8 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      {ICONS[name]}
-    </Svg>
-  );
-}
 
 /* ---------- top bar with back chevron (.topbar + .ib) ---------- */
 
