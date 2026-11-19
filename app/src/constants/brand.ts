@@ -44,8 +44,8 @@ export const Type = {
   heading: { fontFamily: Font.bold, fontSize: 20 },
   row: { fontFamily: Font.semibold, fontSize: 16 },
   body: { fontFamily: Font.regular, fontSize: 15, lineHeight: 21 },
-  label: { fontFamily: Font.semibold, fontSize: 13 },
-  mono: { fontFamily: Font.mono, fontSize: 12 },
+  label: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 20 }, // secondary info
+  mono: { fontFamily: Font.mono, fontSize: 13, lineHeight: 18 }, // minimum: caps labels + time only
 } as const;
 
 export const Space = {

@@ -182,9 +182,8 @@ const styles = StyleSheet.create({
     color: Color.white,
   },
   label: {
-    fontFamily: Font.mono,
-    fontSize: 12,
-    letterSpacing: 1.2,
+    ...Type.mono,
+    letterSpacing: 1,
     color: Color.meta,
     marginTop: 20,
     marginBottom: Space.base,
@@ -230,7 +229,6 @@ const styles = StyleSheet.create({
   notice: {
     ...Type.label,
     fontFamily: Font.regular,
-    lineHeight: 18,
     color: Color.meta,
   },
   // No red in our palette: problems are shown in white so they stand out from grey meta text.

@@ -222,7 +222,6 @@ const styles = StyleSheet.create({
   helper: {
     ...Type.label,
     fontFamily: Font.regular,
-    lineHeight: 18,
     color: Color.meta,
     marginTop: 14,
   },

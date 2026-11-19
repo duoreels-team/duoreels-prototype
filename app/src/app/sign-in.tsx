@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
   sentLine: {
     ...Type.label,
     fontFamily: Font.regular,
-    lineHeight: 18,
     color: Color.meta,
     marginTop: -2,
     marginBottom: 10,
@@ -236,8 +235,7 @@ const styles = StyleSheet.create({
     color: Color.meta,
   },
   mono: {
-    fontFamily: Font.mono,
-    fontSize: 12,
+    ...Type.mono,
     color: Color.meta,
   },
   resend: {
