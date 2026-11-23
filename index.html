@@ -296,6 +296,25 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .crownic{width:22px;height:auto;filter:drop-shadow(0 1px 5px rgba(142,108,255,.6))}
 .pricecard{flex:1;background:var(--surface);border-radius:12px;padding:12px 14px}
 .pricecard b{font:900 30px var(--disp);display:block;margin:2px 0}
+/* plan & storage: one storage hero + two plans in one unified format */
+.stohero{padding:16px}
+.stohero .big{display:flex;align-items:baseline;gap:8px}
+.stohero .big b{font:900 44px/1 var(--disp)}
+.stobar{display:flex;gap:2px;height:8px;border-radius:8px;overflow:hidden;background:var(--control);margin:14px 0 12px}
+.stobar i{display:block;height:100%}
+.stokey{display:flex;flex-wrap:wrap;gap:6px 14px}
+.stokey span{display:inline-flex;align-items:center;gap:6px;font:600 13px var(--ui);color:var(--grey)}
+.stokey span i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.plans{display:flex;flex-direction:column;gap:12px}
+.plancard{position:relative;display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;background:var(--surface);border:1.5px solid var(--control)}
+.plancard.on{border-color:var(--violet);background:linear-gradient(135deg,#2a1d55 0%,var(--surface) 70%)}
+.plancard .crownic{width:32px;flex:none}
+.plancard .tx{flex:1;min-width:0}
+.plancard .nm{display:flex;align-items:center;gap:8px}
+.plancard .nm b{font:900 28px/1 var(--disp);letter-spacing:.02em}
+.plancard .tag{height:22px;font-size:14px;padding:0 10px}
+.plancard .sub{font:600 14px/1.4 var(--ui);color:var(--grey);margin-top:6px}
+.plancard .meta{margin-top:2px}
 .story{position:absolute;inset:0;z-index:78;background:#000;animation:fadein .25s}
 .story .prog{position:absolute;top:52px;left:12px;right:12px;display:flex;gap:4px;z-index:2}
 .story .prog i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
@@ -441,7 +460,7 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .prow.big{padding:12px}.prow.big .cv34{width:76px}.prow.big .tx{gap:5px}.prow.big .tx b{font-size:17px}
 .hbtn{height:32px!important;font-size:16px!important;padding:0 14px!important;margin-top:4px}
 .wrow{gap:12px}.wrow .tx b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wrow .tx .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cv34.sm{width:40px;border-radius:6px}.cv34.sm .cut{display:none}
+.cv34.sm{width:48px;border-radius:6px}.cv34.sm .cut{left:3px;bottom:3px;height:18px;padding:0 4px;border-radius:4px}
 
 .prow .rtag{position:absolute;top:-9px;right:14px;height:20px;font-size:14px;padding:0 10px;z-index:2}
 .cv34 .cut{position:absolute;left:4px;bottom:4px;display:inline-flex;align-items:center;height:20px;padding:0 5px;border-radius:5px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);font:500 13px var(--mono);color:#fff}
@@ -454,6 +473,8 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 /* ---- home: logo-field + one light hero, slanted main button (same slant as tags) ---- */
 .btn-main.slant{border-radius:0;clip-path:polygon(22px 0,100% 0,calc(100% - 22px) 100%,0 100%)}
 .prow.big .tx .tag{margin-top:3px}
+/* home: tighter in-progress cards */
+.prow.big{padding:10px;gap:12px;margin-top:10px}.prow.big .cv34{width:60px}.prow.big .tx{gap:4px}.prow.big .tx b{font-size:16px}.prow.big .tx .tag{margin-top:2px}
 /* ---- one button system: L = 48 (full width / main), M = 44 (inline pairs, bars); Big Shoulders caps everywhere ---- */
 .btn-main,.btn-sec:not(.btn-auth),.nsendbtn,.ntidy{height:48px!important;border-radius:12px;font:900 20px var(--disp)!important;letter-spacing:.03em;text-transform:uppercase;box-shadow:none}
 .btn-sec:not(.btn-auth),.ntidy{padding:0 18px;background:var(--control);color:#fff}
@@ -612,7 +633,6 @@ function freshState(){
         pins:[{t:12,by:'M'},{t:22,by:'L'}],
         drafts:[{id:1,t:3,text:'Cut the intro to about 3 seconds.',att:null},{id:2,t:12,text:'Slow down the coffee pour — hold 2 s longer.',att:'Drawing'},{id:3,t:31,text:'Use this kind of ending shot.',att:'Image'}],
         all:[{id:11,t:3,by:'M',v:2,text:'Cut the first 3 s, start on the coffee.',reply:{by:'L',text:'Done — it opens on the pour now.'},done:false},{id:12,t:30,by:'L',v:3,text:'Swap the outro music for something calmer?',done:false},{id:13,t:5,by:'M',v:2,text:'Hold the hook text one beat longer.',done:false},{id:14,t:18,by:'M',v:1,text:'Brighter grade on the window shots.',done:true},{id:15,t:40,by:'M',v:1,text:'End on the croissant, not the laptop.',done:true}]},
-      {id:'cafe',title:'Café opening',type:'Food',img:'cafe',vimg:'cafe',ed:'L',status:'progress',round:1,rounds:3,v:1,turn:'me',asks:true,sub:'Wants until Sat · answer him',due:'Fri',price:120,dur:112,pins:[{t:8,by:'L'}],drafts:[],all:[]},
       {id:'pu',title:'Product unboxing',type:'Product',img:'pu',vimg:'pu',ed:'J',eds:['J','F','K'],status:'progress',round:2,rounds:3,v:2,turn:'them',sub:'Jon · due Mon',due:'Mon',price:90,dur:67,pins:[],drafts:[],all:[]},
       {id:'wed',title:'Wedding teaser',type:'Vlog',img:'wed',vimg:'wed',ed:'L',status:'progress',round:1,rounds:3,v:0,turn:'them',sub:'Leo is on the first cut',due:'Fri',price:150,dur:138,pins:[],drafts:[],all:[]},
       {id:'gym',title:'Gym promo',type:'Product',img:'gym',vimg:'gym',ed:'J',status:'progress',round:3,rounds:3,v:3,turn:'them',sub:'Jon · final cut due Fri',due:'Fri',price:60,dur:49,pins:[],drafts:[],all:[]},
@@ -621,8 +641,8 @@ function freshState(){
       {id:'c3',title:'Picnic with Mochi',type:'Vlog',img:'c3',vimg:'c3',ed:'J',status:'done',v:3,dur:126,sub:'Done · Oct 12',pins:[],drafts:[],all:[]},
       {id:'c4',title:'Rainy night walk',type:'Travel',img:'c4',vimg:'c4',ed:'L',status:'done',v:2,dur:58,sub:'Posted · Oct 2',pins:[],drafts:[],all:[]},
     ],
-    inbox:[{by:'L',last:'Park',proj:'Morning routine',t:'v3 is up. Tightened the intro and swapped the music.',time:'2h',id:'mr',go:'openReview',u:1},{by:'L',last:'Park',proj:'Café opening',t:'Could I have one more day for the colour pass?',time:'3h',id:'cafe',go:'ask',u:1},{by:'S',last:'Kim',t:'Yes, I can do 2 days for $75.',time:'5h',u:1},{by:'J',last:'Diaz',proj:'Product unboxing',t:'Started editing. First cut by Mon.',time:'Yesterday',id:'pu'},{by:'L',last:'Park',proj:'Wedding teaser',t:'Two quick questions about the vows part.',time:'Mon',id:'wed'},{by:'M',last:'',proj:'Latte afternoon',t:'You approved it · $45 released to Leo',time:'Oct 30',id:'c1'}],
-    activity:[{by:'L',t:'Leo uploaded v3',p:'Morning routine · 2 h ago',tag:['NEW V3','violet'],act:['Review v3','review','mr'],unread:true},{by:'L',t:'Leo asks for 1 more day',p:'Café opening · wants until Sat',tag:['REPLY BY 11.27','red'],act:['Answer','ask','cafe'],unread:true},{by:'J',t:'Jon started editing',p:'Product unboxing · yesterday'},{by:'L',t:'Leo sent 2 questions',p:'Wedding teaser · Mon'},{by:'M',t:'You approved Latte afternoon',p:'$45 released to Leo · Oct 30',tag:['DONE','grey']}],
+    inbox:[{by:'L',last:'Park',proj:'Morning routine',t:'v3 is up. Tightened the intro and swapped the music.',time:'2h',id:'mr',go:'openReview',u:1},{by:'S',last:'Kim',t:'Yes, I can do 2 days for $75.',time:'5h',u:1},{by:'J',last:'Diaz',proj:'Product unboxing',t:'Started editing. First cut by Mon.',time:'Yesterday',id:'pu'},{by:'L',last:'Park',proj:'Wedding teaser',t:'Two quick questions about the vows part.',time:'Mon',id:'wed'},{by:'M',last:'',proj:'Latte afternoon',t:'You approved it · $45 released to Leo',time:'Oct 30',id:'c1'}],
+    activity:[{by:'L',t:'Leo uploaded v3',p:'Morning routine · 2 h ago',tag:['NEW V3','violet'],act:['Review v3','review','mr'],unread:true},{by:'J',t:'Jon started editing',p:'Product unboxing · yesterday'},{by:'L',t:'Leo sent 2 questions',p:'Wedding teaser · Mon'},{by:'M',t:'You approved Latte afternoon',p:'$45 released to Leo · Oct 30',tag:['DONE','grey']}],
     msgs:{L:[{me:0,t:'Hey Maya! Got the footage, starting tonight.'},{me:1,t:'Amazing, thank you 🙏'},{me:0,t:'Sent you my storefront link.'}],S:[{me:0,t:'Yes, I can do 2 days for $75.'}],J:[{me:0,t:'You hired Jon · Product unboxing'}]},
     ed:{ // editor side
       invite:{from:'M',title:'Street food tour',img:'mk4',brief:'Reels, 30–45 s. Fast cuts, warm grade, captions on. Start on the sizzle.',price:85,rounds:3,first:'Fri, Nov 14 · 6 pm',pay:'25% · 25% · 50%'},
@@ -780,7 +800,7 @@ V.profile=()=>({html:`<div class="scroll"><div class="topbar">${back_()}</div><d
 /* ---- creator home ---- */
 function homeRow(p){const [tg,c]=tagFor(p);
   const btn=p.newV?['Review','openReview','']:p.asks?['Answer','ask','']:['Reply','go',` data-to="thread" data-k="${p.ed}"`];
-  return `<div class="prow big" data-act="openProject" data-id="${p.id}" role="button" tabindex="0"><div class="cv34" style="${bg(p.img)}"><span class="cut">${mmss(p.dur)}</span></div><div class="tx"><b>${p.title}</b><span class="meta" style="font-size:14px">${metaLine(p)}</span><span class="tag ${c}">${tg}</span></div><button class="ib" style="width:30px;align-self:flex-start;margin-top:2px;color:var(--grey)" data-act="more" data-id="${p.id}" aria-label="More">${I('more',20)}</button></div>`;}
+  return `<div class="prow big" data-act="openProject" data-id="${p.id}" role="button" tabindex="0"><div class="cv34" style="${bg(p.img)}"><span class="cut">${mmss(p.dur)}</span></div><div class="tx"><b>${p.title}</b><span class="meta" style="font-size:14px">${metaLine(p)}</span><span class="tag ${c}">${tg}</span></div><button class="ib" style="width:36px;height:44px;align-self:center;margin-right:-4px;color:var(--grey)" data-act="more" data-id="${p.id}" aria-label="More">${I('more',20)}</button></div>`;}
 function waitRow(p){return `<div class="row wrow" data-act="openProject" data-id="${p.id}" role="button" tabindex="0"><div class="cv34 sm" style="${bg(p.img)}"><span class="cut">${mmss(p.dur)}</span></div><span class="tx"><b class="lab">${p.title}</b><div class="meta">${metaLine(p)}</div></span>${p.eds?`<span class="avs">${p.eds.map(k=>av(k,24)).join('')}</span>`:av(p.ed,24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" data-act="more" data-id="${p.id}" aria-label="More">${I('more',20)}</button></div>`;}
 V.home=()=>{
   const prog=S.projects.filter(p=>p.status==='progress');
@@ -789,7 +809,7 @@ V.home=()=>{
   const mine=[...prog].filter(need).sort((a,b)=>order(a)-order(b)),rest=prog.filter(p=>!need(p));
   const done=S.projects.filter(p=>p.status==='done');
   const unread=S.inbox.filter(m=>m.u).length;
-  return {tab:'home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center" aria-label="Duoreels">${MARK(30)}</span><button class="ib" data-act="go" data-to="activity" aria-label="Messages" style="position:relative">${I('bell')}${unread?`<i style="position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#fff"></i>`:''}</button></div></div>
+  return {tab:'home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center"><button data-act="accounts" aria-label="Switch account" style="display:flex;align-items:center;height:44px;margin-left:-6px;padding:0 6px">${MARK(30)}</button></span><button class="ib" data-act="go" data-to="activity" aria-label="Messages" style="position:relative">${I('bell')}${unread?`<i style="position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#fff"></i>`:''}</button></div></div>
   <div class="scroll home-scroll" style="padding-top:101px;padding-bottom:110px"><svg class="heroart" width="390" height="270" viewBox="0 0 390 270" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:0;top:0;pointer-events:none;z-index:0"><defs><linearGradient id="hf" x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><symbol id="hmk" viewBox="30 24 190 210"><path d="M36 75.782C36 73.4648 36.6709 71.1971 37.9316 69.2529C39.1924 67.3087 40.9891 65.7711 43.1047 64.8259L120.144 30.4039C121.21 29.9276 122.378 29.7255 123.542 29.816C124.706 29.9064 125.829 30.2865 126.809 30.9217C127.788 31.5569 128.593 32.427 129.151 33.4528C129.708 34.4786 130 35.6275 130 36.7949V72.4825C130 73.4437 130.198 74.3947 130.582 75.2761C130.965 76.1575 131.526 76.9505 132.23 77.6055C132.933 78.2606 133.764 78.7637 134.671 79.0836C135.577 79.4034 136.54 79.5332 137.499 79.4647L199.003 75.0715C200.92 74.9346 202.846 75.194 204.659 75.8338C206.471 76.4735 208.133 77.4798 209.54 78.7899C210.947 80.1 212.069 81.6859 212.837 83.4487C213.604 85.2115 214 87.1134 214 89.036V182.287C214 184.588 213.339 186.84 212.095 188.776C210.851 190.711 209.076 192.248 206.984 193.203L131.907 227.478C130.841 227.964 129.669 228.176 128.5 228.092C127.331 228.008 126.201 227.632 125.215 226.998C124.229 226.364 123.418 225.493 122.856 224.464C122.294 223.435 122 222.282 122 221.11V191.221C122 190.141 121.75 189.076 121.27 188.109C120.79 187.142 120.093 186.299 119.233 185.646C118.372 184.993 117.373 184.548 116.312 184.345C115.252 184.143 114.158 184.189 113.118 184.479L53.7632 201.043C51.683 201.624 49.4967 201.715 47.3754 201.31C45.254 200.905 43.2551 200.015 41.5349 198.709C39.8148 197.403 38.42 195.717 37.4598 193.783C36.4996 191.848 36 189.718 36 187.558V75.782ZM100 101.085C100 100.19 100.24 99.3117 100.696 98.5412C101.151 97.7707 101.805 97.1365 102.589 96.705C103.373 96.2734 104.259 96.0603 105.154 96.0878C106.048 96.1153 106.919 96.3824 107.675 96.8613L153.33 125.776C154.043 126.227 154.629 126.851 155.036 127.59C155.442 128.328 155.655 129.157 155.655 130C155.655 130.843 155.442 131.673 155.036 132.411C154.629 133.15 154.043 133.773 153.33 134.224L107.675 163.139C106.919 163.618 106.048 163.885 105.154 163.913C104.259 163.94 103.373 163.727 102.589 163.296C101.805 162.864 101.151 162.23 100.696 161.459C100.24 160.689 100 159.81 100 158.915V101.085Z" fill="#fff" fill-opacity=".07" fill-rule="evenodd"/></symbol><pattern id="hstr" patternUnits="userSpaceOnUse" width="26" height="600" patternTransform="rotate(28)"><rect width="11" height="600" fill="#8E6CFF" fill-opacity=".2"/></pattern><mask id="hm"><rect width="390" height="270" fill="url(#hf)"/></mask><radialGradient id="glow" cx=".5" cy=".46" r=".55"><stop offset="0" stop-color="#8E6CFF" stop-opacity=".75"/><stop offset=".45" stop-color="#8E6CFF" stop-opacity=".22"/><stop offset="1" stop-color="#8E6CFF" stop-opacity="0"/></radialGradient></defs><g mask="url(#hm)"><rect width="390" height="270" fill="url(#glow)"/><rect width="390" height="270" fill="url(#hstr)"/></g></svg><div class="pad">
    <button class="btn-main slant" data-act="go" data-to="newproject">${I('plus',20,2.6)} New project</button>
    <div class="sec" style="margin-top:24px"><span>In progress · ${prog.length}</span><button data-act="seeProg">See all ›</button></div>
@@ -1015,14 +1035,25 @@ V.payments=()=>({html:`<div class="scroll">${topbar('Payments and earnings',S.ro
  <div class="sec"><span>History</span></div><div class="list">${[['Latte afternoon','L','$45','Oct 30','Approved'],['Market day','L','$37.50','Oct 21','Approved'],['Morning routine','L','$37.50','Oct 12','First half'],['Picnic with Mochi','J','$30','Oct 12','Approved']].map(([t,k,a,d,st])=>`<div class="row">${av(k,32)}<span class="tx"><b class="lab" style="font-size:15px">${t}</b><div class="meta">${st} · ${d}</div></span><b class="mono">${a}</b></div>`).join('')}</div>
  <div class="sec"><span>Pay with</span></div><button class="row">${I('money',22)}<span class="tx"><b class="lab" style="font-size:15px">Apple Pay</b><div class="meta">Default</div></span>${I('chev',18)}</button>
  <p class="meta" style="margin-top:14px">Duoreels holds the money and releases it the moment a round is approved. Service fee 5%.</p><div style="height:40px"></div></div></div>`});
-V.plan=()=>({html:`<div class="scroll">${topbar('Plan and storage','38 of 100 GB used')}<div class="pad">
- <div class="card" style="padding:16px;margin-top:4px"><div style="display:flex;justify-content:space-between"><b class="lab" style="font-size:15px">Storage</b><span class="meta">38 of 100 GB</span></div><div class="bar" style="margin:12px 0 8px"><i style="width:38%"></i></div><span class="meta">Finals 21 GB · raw footage 12 GB · old versions 5 GB</span></div>
- <div class="sec"><span>How long we keep files</span></div><div class="list">${[['Raw footage','30 days after the project is done'],['Old versions (v1, v2…)','30 days after approval'],['Final video','1 year on Creator · 60 days on Free'],['Reminders','7 days and 1 day before anything is removed']].map(([a,b])=>`<div class="row"><span class="tx"><b class="lab" style="font-size:15px">${a}</b><div class="meta">${b}</div></span></div>`).join('')}</div>
+const PLANS=[
+ {nm:'VIP',who:'For creators',price:'$7.99/mo',gb:'100 GB',more:'1 seat · unlimited projects',on:true,note:'Renews Dec 4'},
+ {nm:'SVIP',who:'For studios',price:'$19.99/mo',gb:'1 TB',more:'3 seats · AI 4K included',on:false,note:'7 days free'}];
+V.plan=()=>({html:`<div class="scroll">${topbar('Plan and storage')}<div class="pad">
+ <div class="card stohero" style="margin-top:4px">
+  <span class="meta">Storage</span>
+  <div class="big"><b>38 GB</b><span class="meta">of 100 GB</span></div>
+  <div class="stobar"><i style="width:21%;background:var(--violet)"></i><i style="width:12%;background:var(--grey)"></i><i style="width:5%;background:var(--meta)"></i></div>
+  <div class="stokey"><span><i style="background:var(--violet)"></i>Finals 21 GB</span><span><i style="background:var(--grey)"></i>Footage 12 GB</span><span><i style="background:var(--meta)"></i>Old versions 5 GB</span></div>
+  <p class="meta" style="margin:12px 0 0">Projects stay until your storage is full.</p>
+ </div>
  <div class="sec"><span>Plans</span></div>
- <div class="planhero"><img src="img/crown.svg" alt="" class="crownbig"><span class="meta" style="color:#cbbcff">Member · your plan</span><b>Creator</b><span class="meta">$7.99 a month · renews Dec 4</span><span class="meta" style="color:#ddd">100 GB · unlimited projects · finals kept 1 year</span></div>
- <div class="sec"><span>Upgrade</span></div>
- <div class="pricecard" style="border:1.5px solid #3a3a42;display:flex;align-items:center;gap:12px"><div style="flex:1"><span class="meta">Studio</span><b>$19.99<span class="meta" style="font:500 14px var(--ui)"> / month</span></b><span class="meta">1 TB · 3 seats · AI 4K included</span></div></div>
- <div style="margin-top:14px"><button class="btn-main" data-act="proDemo">Try Studio free for 7 days</button></div><button class="btn-sec" style="width:100%;margin-top:10px" data-act="download">${I('dl',18)}Download all finals</button><div style="height:40px"></div></div></div>`});
+ <div class="plans">${PLANS.map(p=>`<div class="plancard ${p.on?'on':''}"><img src="img/crown.svg" alt="" class="crownic"${p.on?'':' style="filter:grayscale(1) brightness(1.4);opacity:.7"'}><div class="tx">
+  <div class="nm"><b>${p.nm}</b>${p.on?'<span class="tag violet">Your plan</span>':''}</div>
+  <div class="sub">${p.who} · ${p.price} · ${p.gb}</div>
+  <div class="meta">${p.more} · ${p.note}</div></div></div>`).join('')}</div>
+ <div style="margin-top:24px"><button class="btn-main" data-act="proDemo">Try SVIP free</button></div>
+ <p class="meta" style="text-align:center;margin:8px 0 0">7 days, then $19.99/mo · cancel any time</p>
+ <button class="btn-sec" style="width:100%;margin-top:24px" data-act="download">${I('dl',18)}Download all finals</button><div style="height:40px"></div></div></div>`});
 
 /* ---- editor ---- */
 V['ed-home']=()=>{const E=S.ed;const left=E.todo.filter(x=>!x.done).length;const doneE=['c1','c2','c4'].map(proj);
@@ -1226,6 +1257,9 @@ const act={
   const nx=()=>{i++;if(i>=reels.length){o.remove();return;}draw();};o.addEventListener('click',nx);draw();$('#phone').appendChild(o);},
  tog(el){el.classList.toggle('on');},
  // me
+ accounts(){const me=S.role==='editor'?'L':'M';const other=me==='M'?'L':'M';const nm=k=>k==='M'?S.me:'Leo Park';const rl=k=>k==='M'?'Creator':'Editor';
+  openSheet(`<h3 class="t20" style="margin:4px 0 12px">Switch account</h3><div class="list"><div class="row">${av(me,36)}<span class="tx"><b class="lab" style="font-size:16px">${nm(me)}</b><div class="meta">${rl(me)} · signed in</div></span><span class="check">${I('check',14,2.6)}</span></div><button class="row" data-act="switchAcct">${av(other,36)}<span class="tx"><b class="lab" style="font-size:16px">${nm(other)}</b><div class="meta">${rl(other)}</div></span>${I('chev',18)}</button><button class="row" data-act="edSoon"><span style="width:36px;height:36px;border-radius:50%;background:var(--control);display:flex;align-items:center;justify-content:center">${I('plus',18)}</span><span class="tx"><b class="lab" style="font-size:16px">Add account</b></span></button></div><div style="height:12px"></div>`);},
+ switchAcct(){closeSheet();act.switchRole();},
  switchRole(){S.role=S.role==='editor'?'creator':'editor';reset(S.role==='editor'?'ed-home':'home',{},'tab');toast(`Now in ${S.role} view`,null,false);},
  signout(){reset('welcome',{},'tab');},
  // editor
