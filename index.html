@@ -155,12 +155,16 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 #sheet-host.open{pointer-events:auto}
 #sheet-host.open .backdrop{opacity:1}
 #sheet-host.open .sheet{transform:none}
-#toast-host{position:absolute;left:12px;right:12px;bottom:100px;z-index:80;display:flex;justify-content:center;pointer-events:none}
-.toast{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(28,28,30,.72);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);font:500 14px var(--ui);pointer-events:auto;box-shadow:0 10px 40px rgba(0,0,0,.5);animation:toastIn .5s var(--ease) both}
-.toast.out{animation:toastOut .35s ease both}
-.toast button{color:var(--violet);font-weight:600}
-@keyframes toastIn{from{opacity:0;transform:translate(-30px,14px)}to{opacity:1;transform:none}}
-@keyframes toastOut{to{opacity:0;transform:translate(30px,-13px)}}
+/* toast drops from the top (under the status bar) so it never covers the tool bar */
+#toast-host{position:absolute;top:54px;left:16px;right:16px;z-index:90;display:flex;justify-content:center;pointer-events:none}
+.toast{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 8px 8px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--control);color:var(--white);font:600 15px/1.3 var(--ui);pointer-events:auto;box-shadow:0 12px 40px rgba(0,0,0,.6);animation:toastIn .45s var(--ease) both;cursor:pointer}
+.toast>span:not(.check){flex:1;min-width:0;padding:6px 0}
+.toast:not(:has(button)){padding-right:16px}
+.toast .check{width:24px;height:24px}
+.toast button{flex:none;height:36px;padding:0 14px;border-radius:999px;background:var(--control);color:var(--violet);font:600 15px var(--ui)}
+.toast.out{animation:toastOut .3s ease both}
+@keyframes toastIn{from{opacity:0;transform:translateY(-120%)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-120%)}}
 #banner{position:absolute;top:50px;left:10px;right:10px;z-index:85;transform:translateY(-220px);visibility:hidden;transition:transform .5s var(--ease),visibility 0s .5s}
 #banner.show{transform:none;visibility:visible;transition:transform .5s var(--ease),visibility 0s}
 #banner .in{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:rgba(36,36,40,.78);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 12px 40px rgba(0,0,0,.6);cursor:pointer}
@@ -693,8 +697,11 @@ function toast(text,undo,icon=true){
   const host=$('#toast-host'); host.innerHTML='';
   const t=document.createElement('div'); t.className='toast';
   t.innerHTML=`${icon?`<span class="check">${I('check',14,2.6)}</span>`:''}<span>${text}</span>${undo?'<button>Undo</button>':''}`;
-  if(undo) t.querySelector('button').onclick=()=>{undo(); t.remove();};
-  host.appendChild(t); setTimeout(()=>{t.classList.add('out'); setTimeout(()=>t.remove(),360)},2800);
+  const hide=()=>{if(t.classList.contains('out'))return; t.classList.add('out'); setTimeout(()=>t.remove(),310);};
+  if(undo) t.querySelector('button').onclick=e=>{e.stopPropagation(); undo(); hide();};
+  t.onclick=hide; // tap to dismiss early
+  $('#banner').classList.remove('show'); // one message at the top at a time
+  host.appendChild(t); setTimeout(hide,2800);
 }
 let bannerFn=null;
 function banner(html,fn){ const b=$('#banner'); $('.in',b).innerHTML=html; bannerFn=fn; b.classList.add('show'); tick(); clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove('show'),4200); }
