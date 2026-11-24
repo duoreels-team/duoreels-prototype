@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Section, Toggle } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
-import { coverSource, editorName, weekday, type Project } from '@/lib/projects';
+import { useCover, editorName, weekday, type Project } from '@/lib/projects';
 
 type Actions = {
   close: () => void;
@@ -54,7 +54,7 @@ export function ProjectSheet({ project: p, actions }: { project: Project; action
   return (
     <View>
       <View style={styles.head}>
-        <View style={styles.thumb}>{coverSource(p) && <Image source={coverSource(p)} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
+        <SheetThumb project={p} />
         <View style={{ flex: 1 }}>
           <Text style={styles.t17} numberOfLines={1}>
             {p.name}
@@ -110,6 +110,11 @@ export function ProjectSheet({ project: p, actions }: { project: Project; action
       </View>
     </View>
   );
+}
+
+function SheetThumb({ project }: { project: Project }) {
+  const source = useCover(project);
+  return <View style={styles.thumb}>{source && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>;
 }
 
 function NotifyToggle({ project: p, actions }: { project: Project; actions: Actions }) {

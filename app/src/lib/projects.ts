@@ -2,6 +2,7 @@ import type { ImageSource } from 'expo-image';
 
 import { person } from '@/lib/people';
 import { SAMPLE_IMAGES } from '@/lib/sample-images';
+import { useSignedUrl } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 export type Project = {
@@ -27,14 +28,26 @@ export type Project = {
   finished_at: string | null;
   notifications: boolean;
   is_sample: boolean;
+  is_draft: boolean;
+  brief_audio_path: string | null;
+  /** When the first cut is due (date + time). due_date keeps the day. */
+  first_cut_at: string | null;
+  /** Paid up front, 0–100. The rest is paid on approval. */
+  upfront_percent: number;
   created_at: string;
 };
 
 export const PROJECT_COLUMNS =
-  'id, owner_id, name, type, status, brief, cover_image, editor_keys, round, rounds, current_version, turn, new_version, asks_extra_day, unread_messages, due_date, price, duration_seconds, done_kind, finished_at, notifications, is_sample, created_at';
+  'id, owner_id, name, type, status, brief, cover_image, editor_keys, round, rounds, current_version, turn, new_version, asks_extra_day, unread_messages, due_date, price, duration_seconds, done_kind, finished_at, notifications, is_sample, is_draft, brief_audio_path, first_cut_at, upfront_percent, created_at';
 
 export async function fetchProjects() {
-  return supabase.from('projects').select(PROJECT_COLUMNS).order('created_at', { ascending: false }).returns<Project[]>();
+  // Drafts are projects still being set up on "New project": Home doesn't show them.
+  return supabase
+    .from('projects')
+    .select(PROJECT_COLUMNS)
+    .eq('is_draft', false)
+    .order('created_at', { ascending: false })
+    .returns<Project[]>();
 }
 
 /* ---------- small formatters (same as the prototype) ---------- */
@@ -105,6 +118,14 @@ export function coverSource(p: Pick<Project, 'cover_image'>): ImageSource | null
     return SAMPLE_IMAGES[c.slice(7) as keyof typeof SAMPLE_IMAGES] ?? null;
   }
   if (/^https?:\/\//.test(c)) return { uri: c };
-  // A path in the private "project-files" bucket: shown through a signed link (see useCover).
+  // A path in the private "project-files" bucket: needs a signed link (see useCover).
   return null;
+}
+
+/** The cover as something <Image> can show — sample photo, web link or a file in Storage. */
+export function useCover(p: Pick<Project, 'cover_image'>): ImageSource | null {
+  const direct = coverSource(p);
+  const storagePath = !direct && p.cover_image ? p.cover_image : null;
+  const url = useSignedUrl(storagePath);
+  return direct ?? (url ? { uri: url } : null);
 }

@@ -4,13 +4,13 @@
  */
 import { Image } from 'expo-image';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { person } from '@/lib/people';
-import { coverSource, mmss, type Project, type TagTone } from '@/lib/projects';
+import { useCover, mmss, type Project, type TagTone } from '@/lib/projects';
 
 /* ---------- slanted shape (clip-path: polygon(s 0, 100% 0, calc(100% - s) 100%, 0 100%)) ---------- */
 
@@ -68,7 +68,7 @@ export function AvatarStack({ keys, size = 24 }: { keys: string[]; size?: number
 /* ---------- 3:4 cover with the time in the corner (.cv34) ---------- */
 
 export function Cover34({ project, width, radius = 8, showTime = true }: { project: Project; width: number; radius?: number; showTime?: boolean }) {
-  const source = coverSource(project);
+  const source = useCover(project);
   return (
     <View style={[styles.cover, { width, height: (width * 4) / 3, borderRadius: radius }]}>
       {source && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />}
@@ -99,6 +99,54 @@ export function SlantButton({ label, icon, onPress }: { label: string; icon?: Ic
           <Text style={[styles.slantText, pressed && { color: Color.white }]}>{label.toUpperCase()}</Text>
         </>
       )}
+    </Pressable>
+  );
+}
+
+/* ---------- prototype .btn-main: 48 high, radius 12, Big Shoulders 20 ---------- */
+
+export function BigButton({
+  label,
+  onPress,
+  disabled,
+  loading,
+  tone = 'violet',
+  style,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  tone?: 'violet' | 'control' | 'white';
+  style?: StyleProp<ViewStyle>;
+}) {
+  const bg = tone === 'violet' ? Color.violet : tone === 'white' ? Color.white : Color.control;
+  const fg = tone === 'control' ? Color.white : Color.black;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.big,
+        { backgroundColor: bg },
+        disabled && { backgroundColor: Color.control },
+        pressed && (tone === 'violet' ? { backgroundColor: Color.violetDeep, transform: [{ translateY: 1 }] } : { transform: [{ scale: 0.97 }] }),
+        style,
+      ]}>
+      {({ pressed }) =>
+        loading ? (
+          <ActivityIndicator color={tone === 'control' ? Color.white : Color.black} />
+        ) : (
+          <Text
+            numberOfLines={1}
+            style={[styles.bigText, { color: fg }, disabled && { color: Color.meta }, pressed && tone === 'violet' && { color: Color.white }]}>
+            {label.toUpperCase()}
+          </Text>
+        )
+      }
     </Pressable>
   );
 }
@@ -234,6 +282,20 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     letterSpacing: 0.6,
     color: Color.black,
+  },
+  big: {
+    height: 48,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bigText: {
+    fontFamily: Font.display,
+    fontSize: 20,
+    lineHeight: 25,
+    paddingTop: 2,
+    letterSpacing: 0.6,
   },
   sec: {
     flexDirection: 'row',

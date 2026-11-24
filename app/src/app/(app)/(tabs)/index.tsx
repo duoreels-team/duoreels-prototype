@@ -17,7 +17,7 @@ import { MainButton } from '@/components/brand/ui';
 import { HeroArt } from '@/components/home/hero-art';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Color, Font, Space, Type } from '@/constants/brand';
-import { dotDate, homeOrder, metaLine, mmss, needsYou, tagFor, type Project } from '@/lib/projects';
+import { dotDate, homeOrder, metaLine, needsYou, tagFor, type Project } from '@/lib/projects';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProjects } from '@/providers/projects-provider';
 
@@ -80,7 +80,7 @@ export default function HomeScreen() {
           }}>
           <HeroArt />
           <View style={styles.pad}>
-            <SlantButton label="New project" icon="plus" onPress={() => soon('New project', 'step 2')} />
+            <SlantButton label="New project" icon="plus" onPress={() => router.push('/new-project')} />
 
             <Section title={`In progress · ${prog.length}`} action="See all ›" onAction={() => soon('All projects', 'a later step')} style={{ marginTop: 24 }} />
 

@@ -29,4 +29,5 @@ export const SAMPLE_IMAGES = {
   s28: require('@/assets/samples/s28.jpg'),
   s30: require('@/assets/samples/s30.jpg'),
   wed: require('@/assets/samples/wed.jpg'),
+  s23: require('@/assets/samples/s23.jpg'),
 } as const;

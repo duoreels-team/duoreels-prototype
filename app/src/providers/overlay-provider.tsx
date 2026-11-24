@@ -5,7 +5,7 @@
 import { BlurView } from 'expo-blur';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, FadeIn, Keyframe, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, Keyframe, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/brand/icons';
@@ -88,6 +88,7 @@ export function OverlayProvider({ children }: PropsWithChildren) {
 function SheetHost({ open, onClose, children }: PropsWithChildren<{ open: boolean; onClose: () => void }>) {
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
+  const keyboard = useAnimatedKeyboard();
   const [height, setHeight] = useState(600);
 
   useEffect(() => {
@@ -95,7 +96,8 @@ function SheetHost({ open, onClose, children }: PropsWithChildren<{ open: boolea
   }, [open, progress]);
 
   const backdrop = useAnimatedStyle(() => ({ opacity: progress.value }));
-  const panel = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - progress.value) * (height + 40) }] }));
+  // Slides up from the bottom, and sits on top of the keyboard when one is open.
+  const panel = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - progress.value) * (height + 40) - keyboard.height.value }] }));
 
   if (!children) return null;
 

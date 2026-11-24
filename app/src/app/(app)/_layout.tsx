@@ -10,6 +10,7 @@ export default function SignedInLayout() {
       <OverlayProvider>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Color.black } }}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="new-project" />
           <Stack.Screen name="soon" />
         </Stack>
       </OverlayProvider>

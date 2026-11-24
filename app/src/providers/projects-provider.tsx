@@ -33,7 +33,7 @@ export function useProject(id: string | undefined) {
 function loadError(error: { code?: string; message?: string }) {
   // The 003 update hasn't been run in Supabase yet.
   if (error.code === 'PGRST202' || error.code === '42703' || /add_sample_projects|column/i.test(error.message ?? '')) {
-    return 'Your database needs the 003 update. Run 003_creator_home.sql in Supabase.';
+    return 'Your database needs an update. Run the newest file in app/supabase in Supabase.';
   }
   if (/network|fetch/i.test(error.message ?? '')) return "Can't reach Duoreels. Check your connection.";
   return "Couldn't load your projects. Try again.";
