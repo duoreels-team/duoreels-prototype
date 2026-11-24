@@ -10,7 +10,6 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Avatar, BigButton, Tag } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
-import { ProjectSheet } from '@/components/home/project-sheet';
 import { InviteSheet } from '@/components/new-project/sheets';
 import { Color, Font } from '@/constants/brand';
 import { askYesFields, logActivity, markProjectRead } from '@/lib/flow';
@@ -185,11 +184,21 @@ export function ApproveSheet({ projectId, onApprove }: { projectId: string; onAp
 
 /* ---------- project details (detailsSheet) ---------- */
 
-export function DetailsSheet({ projectId, onVersions, demo }: { projectId: string; onVersions: () => void; demo: { upload: () => void; ask: () => void } }) {
+export function DetailsSheet({
+  projectId,
+  onVersions,
+  onMore,
+  demo,
+}: {
+  projectId: string;
+  onVersions: () => void;
+  /** "Rename, archive or delete" → the Home ⋯ sheet. */
+  onMore: () => void;
+  demo: { upload: () => void; ask: () => void };
+}) {
   const p = useProject(projectId);
   const data = useReviewData(projectId);
-  const { openSheet, closeSheet, toast } = useOverlay();
-  const { update, removeLater } = useProjects();
+  const { openSheet, closeSheet } = useOverlay();
   const [counts, setCounts] = useState({ clips: 0, refs: 0 });
 
   useEffect(() => {
@@ -230,7 +239,7 @@ export function DetailsSheet({ projectId, onVersions, demo }: { projectId: strin
       </View>
       <Pressable
         accessibilityRole="button"
-        onPress={() => openSheet(<ProjectSheet project={p} actions={{ close: closeSheet, open: openSheet, toast, update, removeLater }} />)}
+        onPress={onMore}
         hitSlop={8}
         style={{ alignSelf: 'center', marginTop: 14 }}>
         <Text style={styles.meta}>Rename, archive or delete</Text>

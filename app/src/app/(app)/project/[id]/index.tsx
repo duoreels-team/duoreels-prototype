@@ -20,6 +20,7 @@ import { DownloadOverlay } from '@/components/review/download-overlay';
 import { DrawingOverlay, DrawLayer, strokesToSvg, type DrawTool, type Stroke } from '@/components/review/draw-layer';
 import { NoteSheet, NotesSheet } from '@/components/review/note-sheets';
 import { ApproveSheet, DetailsSheet, EditProjectSheet, useAskActions, VersionsSheet } from '@/components/review/project-sheets';
+import { ProjectSheet } from '@/components/home/project-sheet';
 import { Stage, type Clock } from '@/components/review/stage';
 import { Strip } from '@/components/review/strip';
 import { useDemo } from '@/components/review/use-demo';
@@ -67,7 +68,7 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const project = useProject(id);
   const data = useReviewData(id);
-  const { refreshProject, setLocal } = useProjects();
+  const { refreshProject, setLocal, update, removeLater } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();
   const demo = useDemo();
   const { askYes, askNo } = useAskActions(id);
@@ -529,6 +530,7 @@ export default function ReviewScreen() {
                       />,
                     )
                   }
+                  onMore={() => openSheet(<ProjectSheet project={project} actions={{ close: closeSheet, open: openSheet, toast, update, removeLater }} />)}
                   demo={{
                     upload: () => demo.upload(project),
                     ask: () => demo.ask(project),
