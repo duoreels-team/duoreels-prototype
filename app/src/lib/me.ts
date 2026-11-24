@@ -30,10 +30,34 @@ export type PlanKey = 'free' | 'vip' | 'svip';
 
 /** The prototype's PLANS: Free by default, VIP = Creator $7.99, SVIP = Studio $19.99. */
 export const PLANS: Record<PlanKey, { name: string; tier: string; price: string; short: string; gb: number; gbLabel: string; credits: number | null; ai: string }> = {
-  free: { name: 'Free', tier: '', price: '$0', short: '10 GB · 3 active projects · finals kept 60 days', gb: 10, gbLabel: '10 GB', credits: 3, ai: 'a month · Tidy up, AI write' },
-  vip: { name: 'Creator', tier: 'VIP', price: '$7.99', short: '100 GB · unlimited projects · finals kept 1 year', gb: 100, gbLabel: '100 GB', credits: 30, ai: 'a month · Tidy up, AI write' },
+  free: { name: 'Free', tier: 'FREE', price: '$0', short: '10 GB · 3 active projects', gb: 10, gbLabel: '10 GB', credits: 3, ai: 'a month · Tidy up, AI write' },
+  vip: { name: 'Creator', tier: 'VIP', price: '$7.99', short: '100 GB · unlimited projects · 30 AI credits a month', gb: 100, gbLabel: '100 GB', credits: 30, ai: 'a month · Tidy up, AI write' },
   svip: { name: 'Studio', tier: 'SVIP', price: '$19.99', short: '1 TB · 3 seats · AI 4K included', gb: 1000, gbLabel: '1 TB', credits: null, ai: 'Tidy up, AI write, AI 4K' },
 };
+
+/** The plan's slanted tag: FREE grey, VIP violet, SVIP violet → blue. */
+export function tierTone(k: PlanKey) {
+  return k === 'svip' ? 'svip' : k === 'vip' ? 'violet' : 'grey';
+}
+
+/** What each plan gets (prototype act.planInfo). */
+export const PLAN_LIST: Record<PlanKey, string[]> = {
+  free: ['3 active projects at a time', '10 GB storage', 'Voice, text, draw and range notes', 'Compare versions', '3 AI credits a month'],
+  vip: ['Everything in Free', 'Unlimited projects', '100 GB storage', '30 AI credits a month for Tidy up and AI write', 'Priority uploads'],
+  svip: ['Everything in Creator', '1 TB storage', '3 team seats', 'Unlimited AI credits', 'AI 4K upscale on finals'],
+};
+
+/** The Compare table (prototype V.plan FEAT): label, Free, VIP, SVIP. */
+export const PLAN_COMPARE: [string, string, string, string][] = [
+  ['Active projects', '3', 'Unlimited', 'Unlimited'],
+  ['Storage', '10 GB', '100 GB', '1 TB'],
+  ['Voice, text, draw and range notes', '✓', '✓', '✓'],
+  ['Compare versions', '✓', '✓', '✓'],
+  ['AI credits (Tidy up, AI write)', '3 a month', '30 a month', 'Unlimited'],
+  ['AI 4K upscale', '—', '—', '✓'],
+  ['Team seats', '1', '1', '3'],
+  ['Price', 'Free', '$7.99 / month', '$19.99 / month'],
+];
 
 export function planOf(p?: { plan?: string } | null): PlanKey {
   return p?.plan === 'vip' || p?.plan === 'svip' ? p.plan : 'free';

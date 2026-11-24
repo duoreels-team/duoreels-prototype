@@ -4,7 +4,7 @@
 import type { ImageSource } from 'expo-image';
 
 import { person } from '@/lib/people';
-import { dotDate, editorName, type Project } from '@/lib/projects';
+import { dotDate, editorName, finishedLabel, type Project } from '@/lib/projects';
 import { SAMPLE_IMAGES } from '@/lib/sample-images';
 import { signedUrl } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -165,7 +165,7 @@ export function canNote(p: Project) {
 
 export function reviewSubtitle(p: Project) {
   const ed = editorName(p);
-  if (p.status === 'done') return `Done · v${p.current_version} is final`;
+  if (p.status === 'done') return `${finishedLabel(p)} · v${p.current_version} is final`;
   if (!p.current_version) return `Waiting for v1 · round 1 of ${p.rounds}`;
   if (canNote(p)) return `Your turn · v${p.current_version} · round ${p.round} of ${p.rounds}`;
   if (p.asks_extra_day) return `${ed} wants until ${dotDate(addDays(p.due_date, 1))} · v${p.current_version}`;

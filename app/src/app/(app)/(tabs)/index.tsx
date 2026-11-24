@@ -6,7 +6,7 @@ import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, Keyframe, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,7 +19,7 @@ import { StripeHeader } from '@/components/brand/stripe-header';
 import { useViewRole } from '@/providers/view-role';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Color, Font, Space, Type } from '@/constants/brand';
-import { dotDate, homeOrder, metaLine, needsYou, tagFor, type Project } from '@/lib/projects';
+import { finishedLabel, homeOrder, metaLine, needsYou, tagFor, type Project } from '@/lib/projects';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProjects } from '@/providers/projects-provider';
 
@@ -44,6 +44,9 @@ export default function HomeTab() {
 
 function HomeScreen() {
   const insets = useSafeAreaInsets();
+  // Done rail: 3 cards across with the 4th peeking (prototype .rail, 112 pt on a 390 phone).
+  const { width: screenW } = useWindowDimensions();
+  const railW = Math.floor((screenW - Space.screenEdge - 2 * 10 - 26) / 3);
   const { status, error, projects, activity, reload, update, removeLater } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();
   const [retrying, setRetrying] = useState(false);
@@ -119,12 +122,14 @@ function HomeScreen() {
             <Section title={`Done · ${done.length}`} action="See all ›" onAction={() => router.push({ pathname: '/all', params: { status: 'done' } })} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railContent}>
               {done.map((p) => (
-                <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={p.name} onPress={() => openProject(p.id)} style={styles.railItem}>
-                  <Cover34 project={p} width={112} radius={10} />
+                <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={p.name} onPress={() => openProject(p.id)} style={{ width: railW }}>
+                  <Cover34 project={p} width={railW} radius={10} />
                   <Text style={[styles.lab, { marginTop: 7 }]} numberOfLines={1}>
                     {p.name}
                   </Text>
-                  <Text style={styles.meta}>{dotDate(p.finished_at)}</Text>
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {finishedLabel(p)}
+                  </Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -327,9 +332,6 @@ const styles = StyleSheet.create({
   railContent: {
     paddingHorizontal: Space.screenEdge,
     gap: 10,
-  },
-  railItem: {
-    width: 112,
   },
   centre: {
     flex: 1,

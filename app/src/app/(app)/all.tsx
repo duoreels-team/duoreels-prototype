@@ -12,8 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BigButton, Chip, Tag } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
+import { DeleteProjectsSheet } from '@/components/home/project-sheet';
 import { Color, Font, Space } from '@/constants/brand';
-import { editorName, mmss, tagFor, useCover, type Project } from '@/lib/projects';
+import { editorName, finishedLabel, mmss, tagFor, useCover, type Project } from '@/lib/projects';
 import { gb, planOf, PLANS, useStorage } from '@/lib/me';
 import { useAuth } from '@/providers/auth-provider';
 import { useOverlay } from '@/providers/overlay-provider';
@@ -29,14 +30,20 @@ function filtered(list: Project[], f: Filter) {
   return l;
 }
 
-function GCard({ p }: { p: Project }) {
+function GCard({ p, selecting, picked, onToggle }: { p: Project; selecting: boolean; picked: boolean; onToggle: () => void }) {
   const src = useCover(p);
   const [tag, tone] = tagFor(p);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={p.name} onPress={() => router.push(`/project/${p.id}`)} style={styles.gcard}>
-      <View style={styles.thumb}>
+    <Pressable
+      accessibilityRole={selecting ? 'checkbox' : 'button'}
+      accessibilityState={selecting ? { checked: picked } : undefined}
+      accessibilityLabel={p.name}
+      onPress={selecting ? onToggle : () => router.push(`/project/${p.id}`)}
+      style={styles.gcard}>
+      <View style={[styles.thumb, picked && styles.thumbPicked]}>
         {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" />}
-        {!tag.startsWith('WAITING') && <Tag label={tag} tone={tone} height={20} style={styles.gtag} />}
+        {selecting && <View style={[styles.selc, picked && styles.selcOn]}>{picked && <Icon name="check" size={14} strokeWidth={2.6} color={Color.black} />}</View>}
+        {!tag.startsWith('WAITING') && p.status !== 'done' && <Tag label={tag} tone={tone} height={20} style={styles.gtag} />}
         <View style={styles.dur}>
           <Text style={styles.durText}>{mmss(p.duration_seconds)}</Text>
         </View>
@@ -45,7 +52,7 @@ function GCard({ p }: { p: Project }) {
         {p.name}
       </Text>
       <Text style={styles.meta} numberOfLines={1}>
-        {p.type} · {p.status === 'done' ? 'Done' : p.turn === 'me' ? 'Your turn' : `Waiting on ${editorName(p)}`}
+        {p.type} · {p.status === 'done' ? finishedLabel(p) : p.turn === 'me' ? 'Your turn' : `Waiting on ${editorName(p)}`}
       </Text>
     </Pressable>
   );
@@ -104,6 +111,29 @@ export default function AllProjectsScreen() {
   const { openSheet, closeSheet } = useOverlay();
   const [f, setF] = useState<Filter>({ status: status === 'done' ? 'done' : status === 'progress' ? 'in_progress' : 'all', types: [], sort: 'Newest' });
   const [q, setQ] = useState('');
+  /** Select mode (prototype S.sel): null = off. */
+  const [sel, setSel] = useState<string[] | null>(null);
+  const { removeLater } = useProjects();
+  const { toast } = useOverlay();
+
+  function askDelete() {
+    if (!sel?.length) return;
+    const ids = [...sel];
+    const names = ids.map((id) => projects.find((p) => p.id === id)?.name ?? 'Project');
+    openSheet(
+      <DeleteProjectsSheet
+        names={names}
+        onKeep={closeSheet}
+        onDelete={() => {
+          closeSheet();
+          setSel(null);
+          // Hidden now; really deleted (rows + files) after 5 s unless you tap Undo.
+          const undo = removeLater(ids, 5000, (msg) => toast(msg));
+          toast(ids.length === 1 ? `${names[0]} deleted` : `${ids.length} projects deleted`, undo, true, 5000);
+        }}
+      />,
+    );
+  }
 
   const list = useMemo(() => filtered(projects, f).filter((p) => !q.trim() || p.name.toLowerCase().includes(q.trim().toLowerCase())), [projects, f, q]);
   const active = [...(f.status !== 'all' ? [f.status === 'done' ? 'Done' : 'In progress'] : []), ...f.types];
@@ -111,9 +141,15 @@ export default function AllProjectsScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
-      {/* "Select" doesn't do anything in the prototype yet. */}
-      <PageTop title="" right={<Text style={[styles.lab, { paddingHorizontal: 8 }]}>Select</Text>} />
-      <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: 50 + insets.bottom }]} keyboardShouldPersistTaps="handled">
+      <PageTop
+        title=""
+        right={
+          <Pressable accessibilityRole="button" onPress={() => setSel((x) => (x ? null : []))} hitSlop={8} style={{ paddingHorizontal: 8, minHeight: 44, justifyContent: 'center' }}>
+            <Text style={styles.lab}>{sel ? 'Cancel' : 'Select'}</Text>
+          </Pressable>
+        }
+      />
+      <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: (sel ? 120 : 50) + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.ptitle}>ALL PROJECTS</Text>
 
         <View style={styles.card}>
@@ -126,7 +162,6 @@ export default function AllProjectsScreen() {
           <View style={styles.bar}>
             <View style={[styles.barFill, { width: `${Math.max(storage.total ? 1 : 0, Math.min(100, (storage.total / (PLANS[plan].gb * 1e9)) * 100))}%` }]} />
           </View>
-          <Text style={styles.meta}>Finished projects clear after {plan === 'free' ? '60 days' : '1 year'}</Text>
         </View>
 
         <View style={styles.search}>
@@ -169,11 +204,26 @@ export default function AllProjectsScreen() {
 
         <View style={styles.grid}>
           {list.map((p) => (
-            <GCard key={p.id} p={p} />
+            <GCard
+              key={p.id}
+              p={p}
+              selecting={!!sel}
+              picked={!!sel?.includes(p.id)}
+              onToggle={() => setSel((x) => (x ? (x.includes(p.id) ? x.filter((y) => y !== p.id) : [...x, p.id]) : x))}
+            />
           ))}
         </View>
         {!list.length && <Text style={styles.empty}>Nothing matches. Try another filter.</Text>}
       </ScrollView>
+      {sel && (
+        <View style={[styles.selbar, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
+          <Text style={styles.lab}>{sel.length} selected</Text>
+          <Pressable accessibilityRole="button" disabled={!sel.length} onPress={askDelete} style={({ pressed }) => [styles.delBtn, !sel.length && { opacity: 0.4 }, pressed && { opacity: 0.85 }]}>
+            <Icon name="trash" size={18} color={Color.black} />
+            <Text style={styles.delText}>DELETE</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -201,6 +251,12 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 16 },
   gcard: { width: '31.9%' },
   thumb: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, overflow: 'hidden', backgroundColor: Color.surface },
+  thumbPicked: { borderWidth: 2, borderColor: Color.violet },
+  selc: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: Color.white, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  selcOn: { backgroundColor: Color.violet, borderColor: Color.violet },
+  selbar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, paddingHorizontal: 16, backgroundColor: 'rgba(10,10,12,0.94)', borderTopWidth: 1, borderTopColor: '#222' },
+  delBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, paddingHorizontal: 22, borderRadius: 26, backgroundColor: Color.violet },
+  delText: { fontFamily: Font.display, fontSize: 21, lineHeight: 26, paddingTop: 2, letterSpacing: 0.4, color: Color.black },
   gtag: { position: 'absolute', left: 6, top: 8 },
   dur: { position: 'absolute', left: 6, bottom: 6, height: 20, paddingHorizontal: 5, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' },
   durText: { fontFamily: Font.mono, fontSize: 13, lineHeight: 16, color: Color.white },

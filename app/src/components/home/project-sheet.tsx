@@ -9,14 +9,14 @@ import { Section, Toggle } from '@/components/brand/bits';
 import { DeadlineSheet, EditProjectSheet, PeopleSheet } from '@/components/review/project-sheets';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
-import { useCover, editorName, weekday, type Project } from '@/lib/projects';
+import { useCover, editorName, finishedLabel, weekday, type Project } from '@/lib/projects';
 
 type Actions = {
   close: () => void;
   open: (content: React.ReactNode) => void;
-  toast: (text: string, undo?: () => void) => void;
+  toast: (text: string, undo?: () => void, icon?: boolean, ms?: number) => void;
   update: (id: string, fields: Partial<Project>) => Promise<string | null>;
-  removeLater: (id: string, delayMs: number) => () => void;
+  removeLater: (ids: string | string[], delayMs: number, onError?: (msg: string) => void) => () => void;
 };
 
 function today() {
@@ -60,7 +60,7 @@ export function ProjectSheet({ project: p, actions }: { project: Project; action
             {p.name}
           </Text>
           <Text style={styles.meta}>
-            With {ed} · {p.status === 'done' ? 'done' : `round ${Math.max(p.round, 1)} of ${p.rounds} · due ${weekday(p.due_date)}`}
+            With {ed} · {p.status === 'done' ? finishedLabel(p) : `round ${Math.max(p.round, 1)} of ${p.rounds} · due ${weekday(p.due_date)}`}
           </Text>
         </View>
       </View>
@@ -137,21 +137,32 @@ function NotifyToggle({ project: p, actions }: { project: Project; actions: Acti
 
 function DeleteConfirm({ project: p, actions }: { project: Project; actions: Actions }) {
   return (
+    <DeleteProjectsSheet
+      names={[p.name]}
+      onKeep={actions.close}
+      onDelete={() => {
+        actions.close();
+        // Leave the project's own screen if you're on it.
+        if (router.canGoBack()) router.dismissTo('/');
+        const undo = actions.removeLater(p.id, 5000, (msg) => actions.toast(msg));
+        actions.toast(`${p.name} deleted`, undo, true, 5000);
+      }}
+    />
+  );
+}
+
+/** One confirm for deleting one or many projects (prototype delAsk / selDelAsk). */
+export function DeleteProjectsSheet({ names, onKeep, onDelete }: { names: string[]; onKeep: () => void; onDelete: () => void }) {
+  const n = names.length;
+  return (
     <View>
-      <Text style={styles.t20}>Delete {p.name}?</Text>
-      <Text style={styles.t15}>Notes, versions and the chat go too. This can&apos;t be undone.</Text>
+      <Text style={styles.t20}>{n === 1 ? `Delete ${names[0]}?` : `Delete ${n} projects?`}</Text>
+      <Text style={styles.t15}>{n === 1 ? 'Its' : 'Their'} videos, notes, footage and chats go too. This can&apos;t be undone.</Text>
       <View style={styles.pair}>
-        <Pressable accessibilityRole="button" onPress={actions.close} style={({ pressed }) => [styles.btnSec, pressed && styles.btnSecPressed]}>
-          <Text style={styles.btnSecText}>KEEP IT</Text>
+        <Pressable accessibilityRole="button" onPress={onKeep} style={({ pressed }) => [styles.btnSec, pressed && styles.btnSecPressed]}>
+          <Text style={styles.btnSecText}>{n === 1 ? 'KEEP IT' : 'KEEP THEM'}</Text>
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            actions.close();
-            const undo = actions.removeLater(p.id, 3200);
-            actions.toast(`${p.name} deleted`, undo);
-          }}
-          style={({ pressed }) => [styles.btnSec, { backgroundColor: Color.white }, pressed && { transform: [{ scale: 0.97 }] }]}>
+        <Pressable accessibilityRole="button" onPress={onDelete} style={({ pressed }) => [styles.btnSec, { backgroundColor: Color.white }, pressed && { transform: [{ scale: 0.97 }] }]}>
           <Text style={[styles.btnSecText, { color: Color.black }]}>DELETE</Text>
         </Pressable>
       </View>

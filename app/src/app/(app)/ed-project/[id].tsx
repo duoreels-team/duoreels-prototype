@@ -26,7 +26,7 @@ import { Color, Font } from '@/constants/brand';
 import { saveFileToPhotos } from '@/lib/download';
 import { approve, simUpload, type VersionMedia } from '@/lib/flow';
 import { usd } from '@/lib/me';
-import { editorName, weekday, type Project } from '@/lib/projects';
+import { editorName, finishedLabel, weekday, type Project } from '@/lib/projects';
 import { addDays, fmt, money, shortDate, versionPicture, versionVideoUrl, type Note, type Version } from '@/lib/review';
 import { currentVersion, loadReview, updateNotes, useReviewData, versionNumber } from '@/lib/review-store';
 import { normaliseLink } from '@/components/review/attachments';
@@ -535,7 +535,7 @@ export default function EditorProject() {
           <View style={styles.ttSub}>
             <Avatar k="M" size={14} />
             <Text style={styles.ttSubText} numberOfLines={1}>
-              {p.status === 'done' ? `Done · v${v} is final` : waiting ? `Waiting on ${me} · v${v} sent` : `Your turn · v${v + 1} due ${weekday(p.due_date)} 6 pm`}
+              {p.status === 'done' ? `${finishedLabel(p)} · v${v} is final` : waiting ? `Waiting on ${me} · v${v} sent` : `Your turn · v${v + 1} due ${weekday(p.due_date)} 6 pm`}
             </Text>
           </View>
         </View>

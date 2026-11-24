@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 
+import { deleteProjectForReal } from '@/lib/delete-project';
 import { fetchProjects, PROJECT_COLUMNS, type Project } from '@/lib/projects';
 import { fetchActivity, type Activity } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
@@ -21,7 +22,8 @@ type ProjectsContextValue = {
   /** Change fields now, save in the background; puts them back if saving fails. */
   update: (id: string, fields: Partial<Project>) => Promise<string | null>;
   /** Hide now and delete after `delayMs` unless the returned undo is called. */
-  removeLater: (id: string, delayMs: number) => () => void;
+  /** Hide now, really delete (rows + files) after delayMs unless the returned undo runs first. */
+  removeLater: (ids: string | string[], delayMs: number, onError?: (msg: string) => void) => () => void;
 };
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
@@ -126,16 +128,20 @@ export function ProjectsProvider({ children }: PropsWithChildren) {
     return null;
   }, []);
 
-  const removeLater = useCallback((id: string, delayMs: number) => {
-    setHidden((h) => [...h, id]);
+  const removeLater = useCallback((ids: string | string[], delayMs: number, onError?: (msg: string) => void) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    setHidden((h) => [...h, ...list]);
     const timer = setTimeout(async () => {
-      const { error: deleteError } = await supabase.from('projects').delete().eq('id', id);
-      if (!deleteError) setProjects((list) => list.filter((p) => p.id !== id));
-      setHidden((h) => h.filter((x) => x !== id));
+      for (const id of list) {
+        const problem = await deleteProjectForReal(id);
+        if (!problem) setProjects((all) => all.filter((p) => p.id !== id));
+        else onError?.(problem);
+        setHidden((h) => h.filter((x) => x !== id));
+      }
     }, delayMs);
     return () => {
       clearTimeout(timer);
-      setHidden((h) => h.filter((x) => x !== id));
+      setHidden((h) => h.filter((x) => !list.includes(x)));
     };
   }, []);
 

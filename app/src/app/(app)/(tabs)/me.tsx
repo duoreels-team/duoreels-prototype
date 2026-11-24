@@ -17,7 +17,7 @@ import { Avatar, BigButton, Tag, Toggle } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font, Space } from '@/constants/brand';
 import { useMarket } from '@/lib/market';
-import { creditsLine, gb, moneySummary, planOf, PLANS, useSaveProfile, useStorage, usd } from '@/lib/me';
+import { creditsLine, gb, moneySummary, planOf, PLANS, tierTone, useSaveProfile, useStorage, usd } from '@/lib/me';
 import { changeMyPhoto } from '@/lib/my-photo';
 import { editorFull } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
@@ -139,7 +139,7 @@ export default function MeScreen() {
           <View style={styles.flex}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={[styles.rowTitle, { fontSize: 16 }]}>{P.name} plan</Text>
-              {P.tier ? <Tag label={P.tier} tone={plan === 'svip' ? 'svip' : 'violet'} height={22} /> : null}
+              <Tag label={P.tier} tone={tierTone(plan)} height={22} />
             </View>
             <Text style={styles.meta}>{P.short}</Text>
           </View>

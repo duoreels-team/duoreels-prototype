@@ -97,6 +97,18 @@ export function metaLine(p: Project) {
   return `${versionLabel(p)} · ${editorName(p)} · due ${dotDate(p.due_date)}`;
 }
 
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "Finished Oct 12" (prototype finD): when it was approved / finished. Done projects never say "Done". */
+export function finishedLabel(p: Pick<Project, 'finished_at' | 'approved_at' | 'posted_at'>) {
+  const raw = p.approved_at ?? p.finished_at ?? p.posted_at;
+  if (!raw) return 'Finished';
+  // A plain date ("2026-10-12") is read as that day here, not as UTC midnight.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(raw);
+  return Number.isNaN(d.getTime()) ? 'Finished' : `Finished ${MON[d.getMonth()]} ${d.getDate()}`;
+}
+
 export type TagTone = 'violet' | 'yellow' | 'grey';
 
 export function tagFor(p: Project): [string, TagTone] {

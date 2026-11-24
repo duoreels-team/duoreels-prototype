@@ -13,12 +13,13 @@ import { Color, Font } from '@/constants/brand';
 
 const ease = Easing.bezier(0.2, 0.8, 0.2, 1);
 
-type Toast = { id: number; text: string; undo?: () => void; icon: boolean };
+type Toast = { id: number; text: string; undo?: () => void; icon: boolean; ms: number };
 
 type OverlayValue = {
   openSheet: (content: ReactNode) => void;
   closeSheet: () => void;
-  toast: (text: string, undo?: () => void, icon?: boolean) => void;
+  /** ms: how long it stays (default 2.8 s; 5 s for a delete you can undo). */
+  toast: (text: string, undo?: () => void, icon?: boolean, ms?: number) => void;
   /** Top banner (prototype #banner): slides down, tap it to open what it's about. */
   banner: (content: ReactNode, onTap: () => void) => void;
   /** Scroll the open sheet so this row sits near its top. */
@@ -56,10 +57,10 @@ export function OverlayProvider({ children }: PropsWithChildren) {
     closeTimer.current = setTimeout(() => setSheet(null), 450);
   }, []);
 
-  const toast = useCallback((text: string, undo?: () => void, icon = true) => {
+  const toast = useCallback((text: string, undo?: () => void, icon = true, ms = 2800) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToastItem({ id: Date.now(), text, undo, icon });
-    toastTimer.current = setTimeout(() => setToastItem(null), 2800 + 360);
+    setToastItem({ id: Date.now(), text, undo, icon, ms });
+    toastTimer.current = setTimeout(() => setToastItem(null), ms + 360);
   }, []);
 
   const banner = useCallback((content: ReactNode, onTap: () => void) => {
@@ -179,9 +180,9 @@ const toastOut = new Keyframe({
 function ToastView({ item, onUndo }: { item: Toast; onUndo: () => void }) {
   const [out, setOut] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setOut(true), 2800);
+    const t = setTimeout(() => setOut(true), item.ms);
     return () => clearTimeout(t);
-  }, []);
+  }, [item.ms]);
   if (out) return null;
   return (
     <View style={styles.toastHost} pointerEvents="box-none">
