@@ -12,10 +12,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvatarStack, Cover34, IconButton, Section, SlantButton, Tag } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
-import { LogoMark } from '@/components/brand/logo-mark';
 import { MainButton } from '@/components/brand/ui';
 import { EditorHome } from '@/components/editor/editor-home';
-import { HeroArt } from '@/components/home/hero-art';
+import { LogoButton } from '@/components/brand/role-sheet';
+import { StripeHeader } from '@/components/brand/stripe-header';
 import { useViewRole } from '@/providers/view-role';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Color, Font, Space, Type } from '@/constants/brand';
@@ -82,7 +82,7 @@ function HomeScreen() {
             const on = e.nativeEvent.contentOffset.y > 6 ? 1 : 0;
             if (glass.value !== on) glass.value = on;
           }}>
-          <HeroArt />
+          <StripeHeader />
           <View style={styles.pad}>
             <SlantButton label="New project" icon="plus" onPress={() => router.push('/new-project')} />
 
@@ -157,8 +157,8 @@ function HomeScreen() {
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]} />
         </Animated.View>
         <View style={styles.header}>
-          <View style={styles.flex} accessibilityLabel="Duoreels">
-            <LogoMark size={30} />
+          <View style={styles.flex}>
+            <LogoButton />
           </View>
           <IconButton name="bell" label="Messages" onPress={() => router.push('/activity')}>
             {unread && <View style={styles.dot} />}

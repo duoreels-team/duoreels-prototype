@@ -14,6 +14,8 @@ import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
 import { editorName, mmss, tagFor, useCover, type Project } from '@/lib/projects';
+import { gb, planOf, PLANS, useStorage } from '@/lib/me';
+import { useAuth } from '@/providers/auth-provider';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProjects } from '@/providers/projects-provider';
 
@@ -97,6 +99,9 @@ function FilterSheet({ projects, value, onShow }: { projects: Project[]; value: 
 }
 
 export default function AllProjectsScreen() {
+  const { profile } = useAuth();
+  const storage = useStorage();
+  const plan = planOf(profile);
   const { status } = useLocalSearchParams<{ status?: string }>();
   const insets = useSafeAreaInsets();
   const { projects } = useProjects();
@@ -117,16 +122,17 @@ export default function AllProjectsScreen() {
 
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.lab}>38 of 100 GB</Text>
-            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/soon', params: { title: 'Plan and storage', step: 'step 3' } })} style={styles.more}>
-              <Icon name="spark" size={16} color={Color.violet} />
+            <Text style={styles.lab}>
+              {gb(storage.total)} of {PLANS[plan].gbLabel}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/plan')} style={styles.more}>
               <Text style={[styles.chipText, { color: Color.black }]}>More space</Text>
             </Pressable>
           </View>
           <View style={styles.bar}>
-            <View style={[styles.barFill, { width: '38%' }]} />
+            <View style={[styles.barFill, { width: `${Math.max(storage.total ? 1 : 0, Math.min(100, (storage.total / (PLANS[plan].gb * 1e9)) * 100))}%` }]} />
           </View>
-          <Text style={styles.meta}>Finished projects clear after 60 days</Text>
+          <Text style={styles.meta}>Finished projects clear after {plan === 'free' ? '60 days' : '1 year'}</Text>
         </View>
 
         <View style={styles.search}>

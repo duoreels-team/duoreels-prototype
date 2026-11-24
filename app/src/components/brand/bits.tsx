@@ -5,11 +5,12 @@
 import { Image } from 'expo-image';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgGradient, Polygon, Stop } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { person } from '@/lib/people';
+import { usePendingPhoto } from '@/lib/my-photo';
 import { useAuth } from '@/providers/auth-provider';
 import { useCover, mmss, type Project, type TagTone } from '@/lib/projects';
 
@@ -24,16 +25,45 @@ function SlantFill({ width, height, slant, color }: { width: number; height: num
   );
 }
 
-/* ---------- tag: Big Shoulders caps on a slanted chip ---------- */
+/* ---------- tag (.tag): one slanted label for the whole app ---------- */
 
-const TAG_BG: Record<TagTone, string> = { violet: Color.violet, yellow: Color.yellow, grey: Color.control };
+/** Every tag leans the same way: 9 pt across for every 24 pt of height. */
+const SLANT_PER_PT = 9 / 24;
 
-export function Tag({ label, tone, height = 20, style }: { label: string; tone: TagTone; height?: number; style?: StyleProp<ViewStyle> }) {
+export type AnyTagTone = TagTone | 'svip' | 'glass';
+
+const TAG_BG: Record<Exclude<AnyTagTone, 'svip'>, string> = {
+  violet: Color.violet,
+  yellow: Color.yellow,
+  grey: Color.control,
+  glass: 'rgba(0,0,0,0.6)', // over video (compare v2 | v3)
+};
+
+/**
+ * The prototype's .tag: a parallelogram (top edge shifted right, both sides cut at the
+ * same slant), Big Shoulders 14 caps, black text on the colour (white on grey / glass).
+ * "svip" is the violet → blue gradient used for the SVIP plan.
+ */
+export function Tag({ label, tone, height = 20, style }: { label: string; tone: AnyTagTone; height?: number; style?: StyleProp<ViewStyle> }) {
   const [w, setW] = useState(0);
+  const slant = height * SLANT_PER_PT;
+  const light = tone === 'grey' || tone === 'glass';
   return (
-    <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)} style={[styles.tag, { height }, style]}>
-      <SlantFill width={w} height={height} slant={9} color={TAG_BG[tone]} />
-      <Text style={[styles.tagText, tone === 'grey' && { color: Color.white }]} numberOfLines={1}>
+    <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)} style={[styles.tag, { height, paddingHorizontal: Math.max(9, slant + 3) }, style]}>
+      {w > 0 && (
+        <Svg width={w} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+          {tone === 'svip' && (
+            <Defs>
+              <SvgGradient id="svipFill" x1="0" y1="0.4" x2="1" y2="0.6">
+                <Stop offset="0" stopColor={Color.violet} />
+                <Stop offset="1" stopColor={Color.blue} />
+              </SvgGradient>
+            </Defs>
+          )}
+          <Polygon points={`${slant},0 ${w},0 ${w - slant},${height} 0,${height}`} fill={tone === 'svip' ? 'url(#svipFill)' : TAG_BG[tone]} />
+        </Svg>
+      )}
+      <Text style={[styles.tagText, light && { color: Color.white }]} numberOfLines={1}>
         {label.toUpperCase()}
       </Text>
     </View>
@@ -45,9 +75,10 @@ export function Tag({ label, tone, height = 20, style }: { label: string; tone: 
 export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
   const p = person(k);
   const { profile } = useAuth();
-  // "M" is you: your photo and your initial.
+  const justPicked = usePendingPhoto();
+  // "M" is you: your photo (the one you just picked, while it uploads) and your initial.
   const mine = k === 'M';
-  const photo = mine ? profile?.avatar_url : null;
+  const photo = mine ? (justPicked ?? profile?.avatar_url) : null;
   const letter = mine ? (profile?.name?.trim()[0] ?? 'M').toUpperCase() : k;
   return (
     <View style={[styles.avatar, { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 }]}>
@@ -236,7 +267,6 @@ const styles = StyleSheet.create({
   tag: {
     alignSelf: 'flex-start',
     justifyContent: 'center',
-    paddingHorizontal: 10,
   },
   tagText: {
     fontFamily: Font.display,

@@ -26,7 +26,24 @@ export function useSaveProfile() {
 
 /* ---------- storage (real file sizes in "project-files") ---------- */
 
-export const PLAN_GB: Record<string, number> = { free: 10, creator: 100, studio_trial: 1000, studio: 1000 };
+export type PlanKey = 'free' | 'vip' | 'svip';
+
+/** The prototype's PLANS: Free by default, VIP = Creator $7.99, SVIP = Studio $19.99. */
+export const PLANS: Record<PlanKey, { name: string; tier: string; price: string; short: string; gb: number; gbLabel: string; credits: number | null; ai: string }> = {
+  free: { name: 'Free', tier: '', price: '$0', short: '10 GB · 3 active projects · finals kept 60 days', gb: 10, gbLabel: '10 GB', credits: 3, ai: 'a month · Tidy up, AI write' },
+  vip: { name: 'Creator', tier: 'VIP', price: '$7.99', short: '100 GB · unlimited projects · finals kept 1 year', gb: 100, gbLabel: '100 GB', credits: 30, ai: 'a month · Tidy up, AI write' },
+  svip: { name: 'Studio', tier: 'SVIP', price: '$19.99', short: '1 TB · 3 seats · AI 4K included', gb: 1000, gbLabel: '1 TB', credits: null, ai: 'Tidy up, AI write, AI 4K' },
+};
+
+export function planOf(p?: { plan?: string } | null): PlanKey {
+  return p?.plan === 'vip' || p?.plan === 'svip' ? p.plan : 'free';
+}
+
+/** "12 left a month · Tidy up, AI write" / "Unlimited · …" */
+export function creditsLine(plan: PlanKey, left?: number) {
+  const P = PLANS[plan];
+  return P.credits === null ? `Unlimited · ${P.ai}` : `${left ?? P.credits} left · ${P.credits} ${P.ai}`;
+}
 
 export function gb(bytes: number) {
   const g = bytes / 1e9;
@@ -116,6 +133,11 @@ export async function spendCredits(action: keyof typeof AI_COST, projectId?: str
   const { data: prof } = await supabase.from('profiles').select('ai_credits').eq('id', id).maybeSingle();
   const left = (prof as { ai_credits?: number } | null)?.ai_credits;
   if (left === undefined) return true; // 009 not run yet: don't block the tool
+  const { data: planRow } = await supabase.from('profiles').select('plan').eq('id', id).maybeSingle();
+  if ((planRow as { plan?: string } | null)?.plan === 'svip') {
+    await supabase.from('ai_usage').insert({ action, credits: 0, project_id: projectId ?? null });
+    return true; // SVIP: unlimited
+  }
   if (left < cost) return false;
   await supabase.from('profiles').update({ ai_credits: left - cost }).eq('id', id);
   await supabase.from('ai_usage').insert({ action, credits: -cost, project_id: projectId ?? null });

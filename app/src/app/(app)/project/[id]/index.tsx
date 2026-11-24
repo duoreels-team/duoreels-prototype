@@ -13,7 +13,7 @@ import { ActivityIndicator, PanResponder, Pressable, StyleSheet, Text, View, typ
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
+import { Avatar, BigButton, IconButton, Tag } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { DButton, DecisionBar, DrawToolBar, ToolBar, VoiceBar, type ToolKey } from '@/components/review/bars';
 import { DownloadOverlay } from '@/components/review/download-overlay';
@@ -641,8 +641,8 @@ export default function ReviewScreen() {
                     <Text style={styles.cmpKnobText}>‹ ›</Text>
                   </View>
                 </View>
-                <Text style={[styles.vlabel, { left: 10 }]}>v{v - 1}</Text>
-                <Text style={[styles.vlabel, { right: 10 }]}>v{v}</Text>
+                <Tag label={`v${v - 1}`} tone="glass" height={24} style={{ position: 'absolute', top: 10, left: 10 }} />
+                <Tag label={`v${v}`} tone="glass" height={24} style={{ position: 'absolute', top: 10, right: 10 }} />
               </View>
             )}
           </Stage>

@@ -4,8 +4,6 @@
  * NEW: "Saved · N" entry and a "No editors match" empty state.
  */
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
@@ -15,10 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
+import { StripeHeader } from '@/components/brand/stripe-header';
 import { MarketFilterSheet, ReelTile } from '@/components/market/bits';
 import { Color, Font, Space } from '@/constants/brand';
 import { filterEditors, reviewsOf, useMarket, type Sort } from '@/lib/market';
-import { SAMPLE_IMAGES } from '@/lib/sample-images';
 import { useOverlay } from '@/providers/overlay-provider';
 
 const ease = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -53,11 +51,7 @@ export default function MarketplaceScreen() {
           const on = e.nativeEvent.contentOffset.y > 6 ? 1 : 0;
           if (glass.value !== on) glass.value = on;
         }}>
-        {/* .mk-blinds: the photo, solid to 150 px, gone by 240 px */}
-        <View style={styles.blinds} pointerEvents="none">
-          <Image source={SAMPLE_IMAGES['mk-blinds']} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)', Color.black]} locations={[0, 150 / 240, 1]} style={StyleSheet.absoluteFill} />
-        </View>
+        <StripeHeader />
         <View style={styles.pad}>
           <Text style={styles.ptitle}>MARKETPLACE</Text>
 
@@ -203,7 +197,6 @@ export default function MarketplaceScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Color.black },
   pad: { paddingHorizontal: Space.screenEdge },
-  blinds: { position: 'absolute', left: 0, right: 0, top: 0, height: 240 },
   fixedTop: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, overflow: 'hidden' },
   header: { height: 54, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10 },
   ptitle: { fontFamily: Font.display, fontSize: 48, lineHeight: 50, paddingTop: 4, letterSpacing: 0.24, color: Color.white },

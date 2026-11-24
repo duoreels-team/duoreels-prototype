@@ -13,7 +13,7 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
+import { Avatar, BigButton, IconButton, Tag } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { UploadBar } from '@/components/brand/upload-bar';
 import { DButton, DecisionBar } from '@/components/review/bars';
@@ -259,10 +259,7 @@ function UploadOverlay({ project, file, me, changes, onCancel, onSent }: { proje
           </Text>
           <View style={styles.wcHead}>
             <Text style={[styles.lbl, { marginTop: 0, marginBottom: 0 }]}>WHAT CHANGED</Text>
-            <View style={styles.draft}>
-              <Icon name="spark" size={12} color={Color.violet} />
-              <Text style={[styles.meta, { color: Color.violet }]}>Draft</Text>
-            </View>
+            <Tag label="Draft" tone="violet" height={22} />
           </View>
           {text === null ? (
             <Text style={[styles.wc, { color: Color.meta }]}>Writing from your ticked notes…</Text>

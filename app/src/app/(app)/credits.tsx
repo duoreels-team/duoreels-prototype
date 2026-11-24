@@ -11,7 +11,7 @@ import { BigButton } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
-import { AI_COST, AI_LABEL, useSaveProfile } from '@/lib/me';
+import { AI_COST, AI_LABEL, planOf, PLANS, useSaveProfile } from '@/lib/me';
 import { inboxTime } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
@@ -34,7 +34,9 @@ export default function CreditsScreen() {
   const { openSheet, closeSheet, toast } = useOverlay();
   const save = useSaveProfile();
   const [uses, setUses] = useState<Use[] | null>(null);
-  const left = profile?.ai_credits ?? 12;
+  const plan = planOf(profile);
+  const unlimited = PLANS[plan].credits === null;
+  const left = profile?.ai_credits ?? PLANS[plan].credits ?? 0;
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('ai_usage').select('id, action, credits, project_id, created_at').order('created_at', { ascending: false }).limit(20);
@@ -97,8 +99,8 @@ export default function CreditsScreen() {
       <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: 40 + insets.bottom }]}>
         <View style={[styles.card, styles.hero]}>
           <Icon name="spark" size={28} color={Color.violet} />
-          <Text style={styles.big}>{left}</Text>
-          <Text style={styles.meta}>credits left</Text>
+          <Text style={styles.big}>{unlimited ? '∞' : left}</Text>
+          <Text style={styles.meta}>{unlimited ? 'Unlimited on SVIP' : `credits left · ${PLANS[plan].credits} a month on ${PLANS[plan].name}`}</Text>
         </View>
 
         <Text style={styles.sec}>WHAT USES CREDITS</Text>

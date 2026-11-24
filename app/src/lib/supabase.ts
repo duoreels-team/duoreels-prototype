@@ -44,7 +44,7 @@ export type Profile = {
   // From 009 (optional until it has been run).
   city?: string | null;
   bio?: string | null;
-  plan?: 'free' | 'creator' | 'studio_trial' | 'studio';
+  plan?: 'free' | 'vip' | 'svip';
   trial_ends_at?: string | null;
   ai_credits?: number;
   notify_on?: boolean;

@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Cover34, IconButton, Section, Tag } from '@/components/brand/bits';
+import { LogoButton } from '@/components/brand/role-sheet';
+import { StripeHeader } from '@/components/brand/stripe-header';
 import { Icon } from '@/components/brand/icons';
 import { Color, Font, Space } from '@/constants/brand';
 import { moneySummary, usd } from '@/lib/me';
@@ -98,6 +100,7 @@ export function EditorHome() {
     <View style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 54, paddingBottom: 110 }}>
+        <StripeHeader />
         <View style={styles.pad}>
           {invite && inviteProject && (
             <Animated.View entering={slideIn(0)}>
@@ -180,7 +183,9 @@ export function EditorHome() {
       </ScrollView>
       <View style={[styles.fixedTop, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <Text style={styles.wm}>DUOREELS</Text>
+          <View style={styles.flex}>
+            <LogoButton />
+          </View>
           <IconButton name="bell" label="Activity" onPress={() => router.push('/activity')} />
         </View>
       </View>
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Color.black },
   pad: { paddingHorizontal: Space.screenEdge },
   flex: { flex: 1, minWidth: 0 },
-  fixedTop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)' },
+  fixedTop: { position: 'absolute', top: 0, left: 0, right: 0 },
   header: { height: 54, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10 },
   wm: { flex: 1, fontFamily: Font.display, fontSize: 30, lineHeight: 34, paddingTop: 2, letterSpacing: 0.6, color: Color.white },
   inviteCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, overflow: 'hidden' },
