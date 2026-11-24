@@ -33,14 +33,11 @@ const slideIn = (i: number) =>
     .duration(550)
     .delay(i * 40);
 
-function soon(title: string, step: string) {
-  router.push({ pathname: '/soon', params: { title, step } });
-}
-const openProject = () => soon('Project page', 'step 2');
+const openProject = (id: string) => router.push(`/project/${id}`);
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { status, error, projects, reload, update, removeLater } = useProjects();
+  const { status, error, projects, activity, reload, update, removeLater } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();
   const [retrying, setRetrying] = useState(false);
 
@@ -58,7 +55,7 @@ export default function HomeScreen() {
   }, [projects]);
 
   // The bell's dot: something new is waiting for you.
-  const unread = projects.some((p) => p.status === 'in_progress' && (p.new_version || p.asks_extra_day || p.unread_messages > 0));
+  const unread = activity.some((a) => a.unread);
 
   const more = (p: Project) =>
     openSheet(<ProjectSheet project={p} actions={{ close: closeSheet, open: openSheet, toast, update, removeLater }} />);
@@ -82,21 +79,21 @@ export default function HomeScreen() {
           <View style={styles.pad}>
             <SlantButton label="New project" icon="plus" onPress={() => router.push('/new-project')} />
 
-            <Section title={`In progress · ${prog.length}`} action="See all ›" onAction={() => soon('All projects', 'a later step')} style={{ marginTop: 24 }} />
+            <Section title={`In progress · ${prog.length}`} action="See all ›" onAction={() => router.push({ pathname: '/all', params: { status: 'progress' } })} style={{ marginTop: 24 }} />
 
             {mine.map((p, i) => (
               <Animated.View key={p.id} entering={slideIn(i)}>
-                <HomeRow project={p} onPress={openProject} onMore={() => more(p)} />
+                <HomeRow project={p} onPress={() => openProject(p.id)} onMore={() => more(p)} />
               </Animated.View>
             ))}
 
             <View style={[styles.list, { marginTop: mine.length ? 18 : 0 }]}>
               {rest.map((p, i) => (
-                <WaitRow key={p.id} project={p} first={i === 0} onPress={openProject} onMore={() => more(p)} />
+                <WaitRow key={p.id} project={p} first={i === 0} onPress={() => openProject(p.id)} onMore={() => more(p)} />
               ))}
               <Pressable
                 accessibilityRole="button"
-                onPress={() => soon('All projects', 'a later step')}
+                onPress={() => router.push({ pathname: '/all', params: { status: 'progress' } })}
                 style={({ pressed }) => [styles.row, styles.seeAll, rest.length > 0 && styles.rowLine, pressed && styles.rowPressed]}>
                 <Text style={styles.lab}>See all {prog.length} in progress</Text>
                 <Icon name="chev" size={16} />
@@ -112,10 +109,10 @@ export default function HomeScreen() {
               <Icon name="chev" size={18} />
             </Pressable>
 
-            <Section title={`Done · ${done.length}`} action="See all ›" onAction={() => soon('All projects · Done', 'a later step')} />
+            <Section title={`Done · ${done.length}`} action="See all ›" onAction={() => router.push({ pathname: '/all', params: { status: 'done' } })} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railContent}>
               {done.map((p) => (
-                <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={p.name} onPress={openProject} style={styles.railItem}>
+                <Pressable key={p.id} accessibilityRole="button" accessibilityLabel={p.name} onPress={() => openProject(p.id)} style={styles.railItem}>
                   <Cover34 project={p} width={112} radius={10} />
                   <Text style={[styles.lab, { marginTop: 7 }]} numberOfLines={1}>
                     {p.name}
@@ -156,7 +153,7 @@ export default function HomeScreen() {
           <View style={styles.flex} accessibilityLabel="Duoreels">
             <LogoMark size={30} />
           </View>
-          <IconButton name="bell" label="Messages" onPress={() => soon('Activity', 'step 3')}>
+          <IconButton name="bell" label="Messages" onPress={() => router.push('/activity')}>
             {unread && <View style={styles.dot} />}
           </IconButton>
         </View>

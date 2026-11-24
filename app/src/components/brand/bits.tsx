@@ -46,11 +46,20 @@ export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
   return (
     <View style={[styles.avatar, { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 }]}>
       <View style={[styles.avatarFill, { width: size, height: size, borderRadius: size / 2, backgroundColor: p.color }]}>
-        {/* 13 is our smallest size, so the letter never goes below it. */}
-        <Text style={[styles.avatarText, { fontSize: Math.max(13, Math.round(size * 0.45)) }]}>{k}</Text>
+        {/* 13 is our smallest size, so the letter never goes below it. The 14 px dots in
+            top bars have no letter, like the prototype (.topbar .av { font-size: 0 }). */}
+        {size > 14 && (
+          <Text style={[styles.avatarText, { fontSize: letterSize(size), lineHeight: letterSize(size) }]} allowFontScaling={false}>
+            {k}
+          </Text>
+        )}
       </View>
     </View>
   );
+}
+
+function letterSize(size: number) {
+  return Math.max(13, Math.round(size * 0.45));
 }
 
 export function AvatarStack({ keys, size = 24 }: { keys: string[]; size?: number }) {
@@ -241,9 +250,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Centred exactly: line box = font size, no extra font padding (Android), centred by flex.
   avatarText: {
     fontFamily: Font.bold,
     color: Color.black,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   avatarStack: {
     flexDirection: 'row',

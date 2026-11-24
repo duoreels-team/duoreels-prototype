@@ -463,7 +463,7 @@ export default function NewProjectScreen() {
       }
       sent.current = true;
       await reload();
-      router.replace({ pathname: '/soon', params: { title: 'Project page', step: 'step 2' } });
+      router.replace(`/project/${pid}`);
       setTimeout(() => toast(`Invite sent to ${ed} · footage shared`), 420);
     } catch {
       setSending(false);

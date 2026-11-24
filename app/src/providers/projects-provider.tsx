@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 
-import { fetchProjects, type Project } from '@/lib/projects';
+import { fetchProjects, PROJECT_COLUMNS, type Project } from '@/lib/projects';
+import { fetchActivity, type Activity } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -10,7 +11,13 @@ type ProjectsContextValue = {
   status: Status;
   error: string | null;
   projects: Project[];
+  activity: Activity[];
   reload: () => Promise<void>;
+  /** Re-read one project (and the activity list) after something changed it. */
+  refreshProject: (id: string) => Promise<void>;
+  reloadActivity: () => Promise<void>;
+  /** Change fields on screen only (the caller saves them). */
+  setLocal: (id: string, fields: Partial<Project>) => void;
   /** Change fields now, save in the background; puts them back if saving fails. */
   update: (id: string, fields: Partial<Project>) => Promise<string | null>;
   /** Hide now and delete after `delayMs` unless the returned undo is called. */
@@ -45,6 +52,7 @@ export function ProjectsProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [activity, setActivity] = useState<Activity[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
   const projectsRef = useRef(projects);
   useEffect(() => {
@@ -55,8 +63,10 @@ export function ProjectsProvider({ children }: PropsWithChildren) {
     if (!userId) return;
     // First time only: copies the prototype's sample projects into this account (returns 0 after that).
     const seeded = await supabase.rpc('add_sample_projects');
-    if (seeded.error) {
-      setError(loadError(seeded.error));
+    // …and their versions, notes, activity and chats (006).
+    const details = seeded.error ? seeded : await supabase.rpc('add_sample_details_for_me');
+    if (seeded.error || details.error) {
+      setError(loadError((seeded.error ?? details.error)!));
       setStatus('error');
       return;
     }
@@ -67,9 +77,31 @@ export function ProjectsProvider({ children }: PropsWithChildren) {
       return;
     }
     setProjects(data ?? []);
+    const acts = await fetchActivity();
+    setActivity(acts.data ?? []);
     setError(null);
     setStatus('ready');
   }, [userId]);
+
+  const reloadActivity = useCallback(async () => {
+    const acts = await fetchActivity();
+    if (!acts.error) setActivity(acts.data ?? []);
+  }, []);
+
+  const refreshProject = useCallback(
+    async (id: string) => {
+      const { data } = await supabase.from('projects').select(PROJECT_COLUMNS).eq('id', id).maybeSingle<Project>();
+      if (data) {
+        setProjects((list) => (list.some((p) => p.id === id) ? list.map((p) => (p.id === id ? data : p)) : [data, ...list]));
+      }
+      await reloadActivity();
+    },
+    [reloadActivity],
+  );
+
+  const setLocal = useCallback((id: string, fields: Partial<Project>) => {
+    setProjects((list) => list.map((p) => (p.id === id ? { ...p, ...fields } : p)));
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -110,8 +142,8 @@ export function ProjectsProvider({ children }: PropsWithChildren) {
   const visible = useMemo(() => projects.filter((p) => !hidden.includes(p.id)), [projects, hidden]);
 
   const value = useMemo(
-    () => ({ status, error, projects: visible, reload, update, removeLater }),
-    [status, error, visible, reload, update, removeLater],
+    () => ({ status, error, projects: visible, activity, reload, refreshProject, reloadActivity, setLocal, update, removeLater }),
+    [status, error, visible, activity, reload, refreshProject, reloadActivity, setLocal, update, removeLater],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

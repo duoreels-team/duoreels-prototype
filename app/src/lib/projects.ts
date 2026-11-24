@@ -34,11 +34,17 @@ export type Project = {
   first_cut_at: string | null;
   /** Paid up front, 0–100. The rest is paid on approval. */
   upfront_percent: number;
+  cover_seconds: number | null;
+  cover_title: string | null;
+  caption: string | null;
+  post_apps: string[];
+  approved_at: string | null;
+  posted_at: string | null;
   created_at: string;
 };
 
 export const PROJECT_COLUMNS =
-  'id, owner_id, name, type, status, brief, cover_image, editor_keys, round, rounds, current_version, turn, new_version, asks_extra_day, unread_messages, due_date, price, duration_seconds, done_kind, finished_at, notifications, is_sample, is_draft, brief_audio_path, first_cut_at, upfront_percent, created_at';
+  'id, owner_id, name, type, status, brief, cover_image, editor_keys, round, rounds, current_version, turn, new_version, asks_extra_day, unread_messages, due_date, price, duration_seconds, done_kind, finished_at, notifications, is_sample, is_draft, brief_audio_path, first_cut_at, upfront_percent, cover_seconds, cover_title, caption, post_apps, approved_at, posted_at, created_at';
 
 export async function fetchProjects() {
   // Drafts are projects still being set up on "New project": Home doesn't show them.

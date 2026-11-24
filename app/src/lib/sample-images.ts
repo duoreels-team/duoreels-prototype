@@ -30,4 +30,8 @@ export const SAMPLE_IMAGES = {
   s30: require('@/assets/samples/s30.jpg'),
   wed: require('@/assets/samples/wed.jpg'),
   s23: require('@/assets/samples/s23.jpg'),
+  player: require('@/assets/samples/player.jpg'),
+  mk1: require('@/assets/samples/mk1.jpg'),
+  mk2: require('@/assets/samples/mk2.jpg'),
+  mk6: require('@/assets/samples/mk6.jpg'),
 } as const;

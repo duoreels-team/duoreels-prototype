@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Section, Toggle } from '@/components/brand/bits';
+import { DeadlineSheet, EditProjectSheet, PeopleSheet } from '@/components/review/project-sheets';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { useCover, editorName, weekday, type Project } from '@/lib/projects';
@@ -23,17 +24,16 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function soon(title: string, step: string) {
-  router.push({ pathname: '/soon', params: { title, step } });
-}
 
 export function ProjectSheet({ project: p, actions }: { project: Project; actions: Actions }) {
   const ed = editorName(p);
+  // Each row opens its own sheet or screen (closing this one first).
+  const later = (fn: () => void) => () => setTimeout(fn, 380);
   const about: [IconName, string, string, () => void][] = [
-    ['pen', 'Name, type & cover', `${p.name} · ${p.type}`, () => soon('Name, type & cover', 'step 2')],
-    ['doc', 'Brief & brand', 'Calm, warm · logo at the end · 2 references', () => soon('Brief and references', 'step 2')],
-    ['cal', 'Deadline', p.due_date ? weekday(p.due_date) : '—', () => soon('Deadline', 'step 2')],
-    ['people', 'People', `You + ${ed}`, () => soon('People', 'step 2')],
+    ['pen', 'Name, type & cover', `${p.name} · ${p.type}`, later(() => actions.open(<EditProjectSheet projectId={p.id} />))],
+    ['doc', 'Brief & brand', 'Calm, warm · logo at the end · 2 references', () => router.push(`/project/${p.id}/brief`)],
+    ['cal', 'Deadline', p.due_date ? weekday(p.due_date) : '—', later(() => actions.open(<DeadlineSheet projectId={p.id} />))],
+    ['people', 'People', `You + ${ed}`, later(() => actions.open(<PeopleSheet projectId={p.id} />))],
   ];
 
   async function archive() {
@@ -102,7 +102,7 @@ export function ProjectSheet({ project: p, actions }: { project: Project; action
           title={`Download latest (v${p.current_version || 1})`}
           onPress={() => {
             actions.close();
-            soon('Download latest', 'step 2');
+            router.push({ pathname: '/project/[id]', params: { id: p.id, download: '1' } });
           }}
         />
         <SheetRow icon="archive" title="Archive" sub="Moves it to Done, you can bring it back" onPress={archive} />

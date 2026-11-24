@@ -19,6 +19,8 @@ type OverlayValue = {
   openSheet: (content: ReactNode) => void;
   closeSheet: () => void;
   toast: (text: string, undo?: () => void, icon?: boolean) => void;
+  /** Top banner (prototype #banner): slides down, tap it to open what it's about. */
+  banner: (content: ReactNode, onTap: () => void) => void;
 };
 
 const OverlayContext = createContext<OverlayValue | null>(null);
@@ -34,6 +36,8 @@ export function OverlayProvider({ children }: PropsWithChildren) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [toastItem, setToastItem] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bannerItem, setBannerItem] = useState<{ id: number; content: ReactNode; onTap: () => void } | null>(null);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openSheet = useCallback((content: ReactNode) => {
@@ -54,6 +58,12 @@ export function OverlayProvider({ children }: PropsWithChildren) {
     toastTimer.current = setTimeout(() => setToastItem(null), 2800 + 360);
   }, []);
 
+  const banner = useCallback((content: ReactNode, onTap: () => void) => {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    setBannerItem({ id: Date.now(), content, onTap });
+    bannerTimer.current = setTimeout(() => setBannerItem(null), 4200);
+  }, []);
+
   useEffect(() => {
     if (!sheetOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -63,7 +73,7 @@ export function OverlayProvider({ children }: PropsWithChildren) {
     return () => sub.remove();
   }, [sheetOpen, closeSheet]);
 
-  const value = useMemo(() => ({ openSheet, closeSheet, toast }), [openSheet, closeSheet, toast]);
+  const value = useMemo(() => ({ openSheet, closeSheet, toast, banner }), [openSheet, closeSheet, toast, banner]);
 
   return (
     <OverlayContext.Provider value={value}>
@@ -71,6 +81,16 @@ export function OverlayProvider({ children }: PropsWithChildren) {
       <SheetHost open={sheetOpen} onClose={closeSheet}>
         {sheet}
       </SheetHost>
+      {bannerItem && (
+        <BannerView
+          key={bannerItem.id}
+          onTap={() => {
+            setBannerItem(null);
+            bannerItem.onTap();
+          }}>
+          {bannerItem.content}
+        </BannerView>
+      )}
       {toastItem && (
         <ToastView
           key={toastItem.id}
@@ -155,6 +175,27 @@ function ToastView({ item, onUndo }: { item: Toast; onUndo: () => void }) {
   );
 }
 
+const bannerIn = new Keyframe({
+  0: { transform: [{ translateY: -220 }] },
+  100: { transform: [{ translateY: 0 }], easing: ease },
+}).duration(500);
+const bannerOut = new Keyframe({
+  0: { transform: [{ translateY: 0 }] },
+  100: { transform: [{ translateY: -220 }], easing: ease },
+}).duration(500);
+
+function BannerView({ children, onTap }: PropsWithChildren<{ onTap: () => void }>) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Animated.View entering={bannerIn} exiting={bannerOut} style={[styles.bannerHost, { top: insets.top + 3 }]}>
+      <Pressable accessibilityRole="button" onPress={onTap} style={styles.banner}>
+        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 /** A plain fade for content that appears inside a sheet. */
 export const sheetFade = FadeIn.duration(200);
 
@@ -186,6 +227,25 @@ const styles = StyleSheet.create({
   sbodyContent: {
     paddingTop: 6,
     paddingHorizontal: 16,
+  },
+  bannerHost: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    zIndex: 85,
+  },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(36,36,40,0.78)',
+    shadowColor: '#000',
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   toastHost: {
     position: 'absolute',
