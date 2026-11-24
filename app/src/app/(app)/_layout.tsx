@@ -1,5 +1,18 @@
-import AppTabs from '@/components/app-tabs';
+import { Stack } from 'expo-router';
+
+import { Color } from '@/constants/brand';
+import { OverlayProvider } from '@/providers/overlay-provider';
+import { ProjectsProvider } from '@/providers/projects-provider';
 
 export default function SignedInLayout() {
-  return <AppTabs />;
+  return (
+    <ProjectsProvider>
+      <OverlayProvider>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Color.black } }}>
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="soon" />
+        </Stack>
+      </OverlayProvider>
+    </ProjectsProvider>
+  );
 }
