@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
+import { editorFull } from '@/lib/review';
 
 const EDITORS: [string, string, string][] = [
   ['L', 'Leo Park', 'Worked together 4 times'],
@@ -15,7 +16,7 @@ const EDITORS: [string, string, string][] = [
 ];
 
 export function editorFullName(k: string) {
-  return k === 'L' ? 'Leo Park' : 'Sara Kim';
+  return editorFull(k);
 }
 
 export function PickEditorSheet({

@@ -61,3 +61,15 @@ export function downloadVersion(version: Version, projectName: string, onProgres
     },
   };
 }
+
+/** Save any file from "project-files" (e.g. a footage clip) to Photos. */
+export async function saveFileToPhotos(path: string, name: string) {
+  if (Platform.OS === 'web') throw new Error('Saving to Photos works on the phone');
+  const perm = await MediaLibrary.requestPermissionsAsync(true);
+  if (!perm.granted) throw new Error('permission');
+  const url = await signedUrl(path);
+  if (!url) throw new Error('link');
+  const target = `${FileSystem.cacheDirectory}${name.replace(/[^A-Za-z0-9._-]+/g, '_')}`;
+  const res = await FileSystem.downloadAsync(url, target);
+  await MediaLibrary.saveToLibraryAsync(res.uri);
+}

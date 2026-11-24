@@ -25,6 +25,8 @@ import { Color, Font, Space } from '@/constants/brand';
 import { defaultFirstCut, firstCutLabel, isoDay } from '@/lib/dates';
 import { person } from '@/lib/people';
 import { mmss } from '@/lib/projects';
+import { fetchTemplates } from '@/lib/templates';
+import { UseTemplateSheet } from '@/components/templates/template-sheet';
 import { SAMPLE_IMAGES } from '@/lib/sample-images';
 import { removeFiles, safeFileName, uploadWithProgress, UploadError, type UploadTask } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -106,7 +108,7 @@ export default function NewProjectScreen() {
   const [name, setName] = useState(defaultName);
   const [type, setType] = useState('Vlog');
   const [brief, setBrief] = useState('');
-  const [editor, setEditor] = useState(params.editor === 'S' ? 'S' : 'L');
+  const [editor, setEditor] = useState(params.editor && /^[A-Z]$/.test(params.editor) ? params.editor : 'L');
   const [price, setPrice] = useState(75);
   const [rounds, setRounds] = useState(3);
   const [firstCut, setFirstCut] = useState(defaultFirstCut);
@@ -376,6 +378,27 @@ export default function NewProjectScreen() {
     );
   }
 
+  /* ---------- Use a template (NEW) ---------- */
+
+  async function useTemplate() {
+    const { list } = await fetchTemplates();
+    openSheet(
+      <UseTemplateSheet
+        list={list}
+        onPick={(tpl) => {
+          closeSheet();
+          setBrief(tpl.brief);
+          if (TYPES.includes(tpl.type)) setType(tpl.type);
+          toast(`Brief from ${tpl.title}`);
+        }}
+        onManage={() => {
+          closeSheet();
+          router.push('/templates');
+        }}
+      />,
+    );
+  }
+
   /* ---------- First cut + Payment ---------- */
 
   // If the draft already exists, save straight away; otherwise it's saved with "Send invite".
@@ -576,6 +599,13 @@ export default function NewProjectScreen() {
                 <IconButton name="spark" label="Write with AI" size={18} width={34} color={Color.violet} onPress={aiBrief} style={{ height: 34 }} />
               </View>
             </View>
+
+            {/* NEW · fill the brief from one of your saved templates */}
+            <Pressable accessibilityRole="button" onPress={useTemplate} style={({ pressed }) => [styles.templateRow, pressed && styles.rowPressed]}>
+              <Icon name="doc" size={18} color={Color.text2} />
+              <Text style={[styles.lab, styles.flex]}>Use a template</Text>
+              <Icon name="chev" size={16} />
+            </Pressable>
 
             <Text style={styles.lbl}>REFERENCES</Text>
             <View style={styles.refs}>
@@ -795,6 +825,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Color.white,
     textAlignVertical: 'top',
+  },
+  templateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 44,
+    paddingHorizontal: 14,
+    marginTop: 8,
+    borderRadius: 12,
+    backgroundColor: Color.surface,
   },
   briefTools: {
     position: 'absolute',

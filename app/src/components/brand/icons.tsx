@@ -94,3 +94,8 @@ export function Icon({
 }) {
   return <SvgXml xml={xmlFor(name, strokeWidth)} width={size} height={size} color={color} />;
 }
+
+/** The Creator-plan crown (prototype img/crown.svg). Height follows the width (162 × 116). */
+export function CrownMark({ width = 22 }: { width?: number }) {
+  return <SvgXml xml={`<svg viewBox="0 0 162 116" fill="none">${CROWN}</svg>`} width={width} height={(width * 116) / 162} />;
+}

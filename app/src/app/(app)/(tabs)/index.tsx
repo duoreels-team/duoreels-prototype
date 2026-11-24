@@ -14,7 +14,9 @@ import { AvatarStack, Cover34, IconButton, Section, SlantButton, Tag } from '@/c
 import { Icon } from '@/components/brand/icons';
 import { LogoMark } from '@/components/brand/logo-mark';
 import { MainButton } from '@/components/brand/ui';
+import { EditorHome } from '@/components/editor/editor-home';
 import { HeroArt } from '@/components/home/hero-art';
+import { useViewRole } from '@/providers/view-role';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Color, Font, Space, Type } from '@/constants/brand';
 import { dotDate, homeOrder, metaLine, needsYou, tagFor, type Project } from '@/lib/projects';
@@ -35,7 +37,12 @@ const slideIn = (i: number) =>
 
 const openProject = (id: string) => router.push(`/project/${id}`);
 
-export default function HomeScreen() {
+export default function HomeTab() {
+  const { role } = useViewRole();
+  return role === 'editor' ? <EditorHome /> : <HomeScreen />;
+}
+
+function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { status, error, projects, activity, reload, update, removeLater } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();

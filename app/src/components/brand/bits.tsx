@@ -10,6 +10,7 @@ import Svg, { Polygon } from 'react-native-svg';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { person } from '@/lib/people';
+import { useAuth } from '@/providers/auth-provider';
 import { useCover, mmss, type Project, type TagTone } from '@/lib/projects';
 
 /* ---------- slanted shape (clip-path: polygon(s 0, 100% 0, calc(100% - s) 100%, 0 100%)) ---------- */
@@ -43,14 +44,20 @@ export function Tag({ label, tone, height = 20, style }: { label: string; tone: 
 
 export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
   const p = person(k);
+  const { profile } = useAuth();
+  // "M" is you: your photo and your initial.
+  const mine = k === 'M';
+  const photo = mine ? profile?.avatar_url : null;
+  const letter = mine ? (profile?.name?.trim()[0] ?? 'M').toUpperCase() : k;
   return (
     <View style={[styles.avatar, { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 }]}>
-      <View style={[styles.avatarFill, { width: size, height: size, borderRadius: size / 2, backgroundColor: p.color }]}>
+      <View style={[styles.avatarFill, { width: size, height: size, borderRadius: size / 2, backgroundColor: p.color, overflow: 'hidden' }]}>
+        {photo && <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />}
         {/* 13 is our smallest size, so the letter never goes below it. The 14 px dots in
             top bars have no letter, like the prototype (.topbar .av { font-size: 0 }). */}
-        {size > 14 && (
+        {size > 14 && !photo && (
           <Text style={[styles.avatarText, { fontSize: letterSize(size), lineHeight: letterSize(size) }]} allowFontScaling={false}>
-            {k}
+            {letter}
           </Text>
         )}
       </View>

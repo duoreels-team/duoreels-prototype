@@ -18,6 +18,7 @@ import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
 import { logActivity } from '@/lib/flow';
+import { spendCredits } from '@/lib/me';
 import { useCover } from '@/lib/projects';
 import { supabase } from '@/lib/supabase';
 import { useOverlay } from '@/providers/overlay-provider';
@@ -51,6 +52,10 @@ export default function PostScreen() {
 
   async function aiWrite() {
     if (!p) return;
+    if (!(await spendCredits('ai_write', id))) {
+      toast('No AI credits left · get more in Me', undefined, false);
+      return;
+    }
     setBusy('write');
     const { data, error } = await supabase.functions.invoke<{ caption: string; hashtags: string }>('write', {
       body: { mode: 'caption', name: p.name, type: p.type, brief: p.brief ?? '' },
@@ -69,6 +74,10 @@ export default function PostScreen() {
     const text = [caption.trim(), tags.trim()].filter(Boolean).join('\n');
     if (!text) {
       toast('Write a caption first', undefined, false);
+      return;
+    }
+    if (!(await spendCredits('translate', id))) {
+      toast('No AI credits left · get more in Me', undefined, false);
       return;
     }
     setBusy('translate');

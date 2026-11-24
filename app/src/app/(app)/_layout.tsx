@@ -3,10 +3,12 @@ import { Stack } from 'expo-router';
 import { Color } from '@/constants/brand';
 import { OverlayProvider } from '@/providers/overlay-provider';
 import { ProjectsProvider } from '@/providers/projects-provider';
+import { ViewRoleProvider } from '@/providers/view-role';
 
 export default function SignedInLayout() {
   return (
     <ProjectsProvider>
+      <ViewRoleProvider>
       <OverlayProvider>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Color.black } }}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -19,9 +21,22 @@ export default function SignedInLayout() {
           <Stack.Screen name="activity" />
           <Stack.Screen name="thread/[k]" />
           <Stack.Screen name="all" />
+          <Stack.Screen name="editor/[k]" />
+          <Stack.Screen name="saved" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="payments" />
+          <Stack.Screen name="payment/[id]" />
+          <Stack.Screen name="pay-with" />
+          <Stack.Screen name="plan" />
+          <Stack.Screen name="credits" />
+          <Stack.Screen name="templates" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="join/[invite]" />
+          <Stack.Screen name="ed-project/[id]" />
           <Stack.Screen name="soon" />
         </Stack>
       </OverlayProvider>
+      </ViewRoleProvider>
     </ProjectsProvider>
   );
 }

@@ -20,6 +20,7 @@ import { person } from '@/lib/people';
 import { editorName } from '@/lib/projects';
 import { fmt, fmtRange, type Note, type NoteKind } from '@/lib/review';
 import { deleteNoteLater, drafts as draftsOf, sentNotes, updateNotes, useReviewData, versionNumber } from '@/lib/review-store';
+import { spendCredits } from '@/lib/me';
 import { useSignedUrl } from '@/lib/storage';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
@@ -202,6 +203,10 @@ export function NotesSheet({
   const v = project.current_version;
 
   async function tidy() {
+    if (!(await spendCredits('tidy', projectId))) {
+      toast('No AI credits left · get more in Me', undefined, false);
+      return;
+    }
     setTidying(true);
     await sleep(1200);
     await Promise.all(send.map((d) => updateNotes(projectId, [d.id], { body: tidyText(d.body) })));

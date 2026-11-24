@@ -16,7 +16,9 @@ function friendly(e: { message?: string } | null | undefined): string {
 
 /* ---------- the editor uploads the next version (simUpload) ---------- */
 
-export async function simUpload(p: Project): Promise<Result & { v?: number }> {
+export type VersionMedia = { video_path: string; thumb_path: string | null; media_kind: 'video' | 'image'; duration_seconds: number };
+
+export async function simUpload(p: Project, given?: VersionMedia, whatChanged?: string): Promise<Result & { v?: number }> {
   const ed = p.editor_keys[0] ?? 'L';
   const v = Math.min(p.current_version + 1, 9);
 
@@ -31,11 +33,11 @@ export async function simUpload(p: Project): Promise<Result & { v?: number }> {
   const video = (clips ?? []).find((c) => c.mime_type?.startsWith('video/'));
   const photo = (clips ?? []).find((c) => c.mime_type?.startsWith('image/'));
   const fallback = p.cover_image?.startsWith('sample:') ? p.cover_image : 'sample:s23';
-  const media = video
+  const media: VersionMedia = given ?? (video
     ? { video_path: video.file_path!, thumb_path: video.thumb_path, media_kind: 'video', duration_seconds: Number(video.duration_seconds) || p.duration_seconds || 30 }
     : photo
       ? { video_path: photo.file_path!, thumb_path: photo.file_path, media_kind: 'image', duration_seconds: p.duration_seconds || 30 }
-      : { video_path: fallback, thumb_path: fallback, media_kind: 'image', duration_seconds: p.duration_seconds || 30 };
+      : { video_path: fallback, thumb_path: fallback, media_kind: 'image', duration_seconds: p.duration_seconds || 30 });
 
   const { data: user } = await supabase.auth.getUser();
   const inserted = await supabase
@@ -81,7 +83,7 @@ export async function simUpload(p: Project): Promise<Result & { v?: number }> {
     project_id: p.id,
     by_key: ed,
     title: `${editorName(p)} uploaded v${v}`,
-    body: `v${v} is up. Take a look when you can.`,
+    body: whatChanged?.trim() ? `v${v} is up. ${whatChanged.trim()}` : `v${v} is up. Take a look when you can.`,
     tag: `NEW V${v} · REVIEW`,
     tag_tone: 'violet',
     action: 'review',

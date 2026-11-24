@@ -99,6 +99,8 @@ export async function versionPicture(v: Pick<Version, 'thumb_path' | 'video_path
 
 export async function versionVideoUrl(v: Pick<Version, 'video_path' | 'media_kind'>) {
   if (v.media_kind !== 'video' || v.video_path.startsWith('sample:')) return null;
+  // A version sent as a link (editor view → "Or paste a link").
+  if (/^https?:\/\//i.test(v.video_path)) return v.video_path;
   return signedUrl(v.video_path);
 }
 

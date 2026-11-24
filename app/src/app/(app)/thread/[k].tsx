@@ -17,6 +17,8 @@ import { supabase } from '@/lib/supabase';
 import { useOverlay } from '@/providers/overlay-provider';
 
 const AUTO_REPLY = 'Sounds good! Send me the brief and I can start Friday.';
+// Leo, Sara, Jon… aren't real people yet, so they answer with the prototype's demo reply.
+const DEMO_EDITORS = ['L', 'S', 'J', 'F', 'K', 'D'];
 
 export default function ThreadScreen() {
   const { k = 'L' } = useLocalSearchParams<{ k: string }>();
@@ -46,6 +48,7 @@ export default function ThreadScreen() {
       return;
     }
     setMsgs((m) => [...m, data as Message]);
+    if (!DEMO_EDITORS.includes(k)) return;
     setTimeout(async () => {
       const r = await supabase.from('messages').insert({ editor_key: k, from_me: false, body: AUTO_REPLY }).select('id, editor_key, from_me, body, created_at').single();
       if (r.data) setMsgs((m) => [...m, r.data as Message]);
@@ -59,9 +62,12 @@ export default function ThreadScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={styles.chat} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
           {msgs.map((m) => (
-            <Animated.View key={m.id} entering={ZoomIn.duration(350)} style={[styles.bubble, m.from_me ? styles.me : styles.them]}>
-              <Text style={[styles.bubbleText, m.from_me && { color: Color.black }]}>{m.body}</Text>
-            </Animated.View>
+            <View key={m.id} style={{ gap: 2 }}>
+              <Animated.View entering={ZoomIn.duration(350)} style={[styles.bubble, m.from_me ? styles.me : styles.them]}>
+                <Text style={[styles.bubbleText, m.from_me && { color: Color.black }]}>{m.body}</Text>
+              </Animated.View>
+              {!m.from_me && m.body === AUTO_REPLY && <Text style={styles.demo}>Demo reply</Text>}
+            </View>
           ))}
         </ScrollView>
         <View style={[styles.form, { paddingBottom: Math.max(12, insets.bottom) }]}>
@@ -91,6 +97,7 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '78%', paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16 },
   me: { alignSelf: 'flex-end', backgroundColor: Color.violet, borderBottomRightRadius: 5 },
   them: { alignSelf: 'flex-start', backgroundColor: Color.surface, borderBottomLeftRadius: 5 },
+  demo: { fontFamily: Font.mono, fontSize: 13, lineHeight: 16, color: Color.meta, marginLeft: 4 },
   bubbleText: { fontFamily: Font.regular, fontSize: 15, lineHeight: 21, color: Color.white },
   form: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 10, paddingHorizontal: 12 },
   input: { flex: 1, height: 44, borderRadius: 22, paddingHorizontal: 16, backgroundColor: Color.surface, fontFamily: Font.regular, fontSize: 15, color: Color.white },

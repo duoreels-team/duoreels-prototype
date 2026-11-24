@@ -73,7 +73,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const fetchProfile = useCallback(async (id: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, role, avatar_url, onboarded_at')
+      .select('*')
       .eq('id', id)
       .maybeSingle();
     if (error || !data) {
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let cancelled = false;
     supabase
       .from('profiles')
-      .select('id, name, role, avatar_url, onboarded_at')
+      .select('*')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
