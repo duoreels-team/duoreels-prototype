@@ -16,7 +16,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
+import { Avatar, BigButton, Chip, IconButton } from '@/components/brand/bits';
+import { NewTypeSheet } from '@/components/new-project/new-type-sheet';
 import { Icon } from '@/components/brand/icons';
 import { UploadBar } from '@/components/brand/upload-bar';
 import { InviteSheet, PickEditorSheet, editorFullName } from '@/components/new-project/sheets';
@@ -93,7 +94,7 @@ async function videoThumb(uri: string) {
 export default function NewProjectScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ editor?: string }>();
-  const { session } = useAuth();
+  const { session, profile, reloadProfile } = useAuth();
   const { projects, reload } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();
 
@@ -107,6 +108,7 @@ export default function NewProjectScreen() {
 
   const [name, setName] = useState(defaultName);
   const [type, setType] = useState('Vlog');
+  const myTypes = profile?.my_types ?? [];
   const [brief, setBrief] = useState('');
   const [editor, setEditor] = useState(params.editor && /^[A-Z]$/.test(params.editor) ? params.editor : 'L');
   const [price, setPrice] = useState(75);
@@ -378,6 +380,24 @@ export default function NewProjectScreen() {
     );
   }
 
+  /* ---------- + New type (prototype npNewType / npNewTypeAdd) ---------- */
+
+  function newType() {
+    openSheet(
+      <NewTypeSheet
+        onAdd={async (v) => {
+          closeSheet();
+          setType(v);
+          if (!TYPES.includes(v) && !myTypes.includes(v) && session) {
+            await supabase.from('profiles').update({ my_types: [...myTypes, v] }).eq('id', session.user.id);
+            reloadProfile();
+          }
+          toast(`Added “${v}”`);
+        }}
+      />,
+    );
+  }
+
   /* ---------- Use a template (NEW) ---------- */
 
   async function useTemplate() {
@@ -566,11 +586,10 @@ export default function NewProjectScreen() {
 
             <Text style={styles.lbl}>TYPE · USED BY FILTER</Text>
             <View style={styles.chips}>
-              {TYPES.map((t) => (
+              {[...TYPES, ...myTypes].map((t) => (
                 <Chip key={t} label={t} on={type === t} onPress={() => setType(t)} />
               ))}
-              {/* In the prototype "+ New type" doesn't do anything yet. */}
-              <Chip label="+ New type" on={false} onPress={() => {}} />
+              <Chip label="+ New type" onPress={newType} />
             </View>
 
             <Text style={styles.lbl}>THE BRIEF</Text>
@@ -661,14 +680,6 @@ export default function NewProjectScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
-  );
-}
-
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} hitSlop={{ top: 6, bottom: 6 }} style={[styles.chip, on && styles.chipOn]}>
-      <Text style={[styles.chipText, on && { color: Color.black }]}>{label}</Text>
-    </Pressable>
   );
 }
 

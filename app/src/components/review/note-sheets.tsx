@@ -5,12 +5,12 @@
  *  • ReplySheet  — reply to a note (replyNote / sendReply)
  */
 import { Image, type ImageSource } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View, type HostInstance, type TextInputInstance } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { FadeOut, LinearTransition, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
-import { Avatar, BigButton } from '@/components/brand/bits';
+import { Avatar, BigButton, Chip } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { AttachedImage, AudioChip, LinkChip } from '@/components/review/attachments';
 import { DrawingOverlay } from '@/components/review/draw-layer';
@@ -85,6 +85,48 @@ function NoteExtras({ n }: { n: Note }) {
 }
 
 /** Swipe left to show Delete (like Mail). Hidden while notes fly out. */
+/** Wraps a note row: when it's the one you jumped to, scroll to it and light it up for 1.5 s. */
+export function FocusRow({ on, children }: { on: boolean; children: ReactNode }) {
+  const ref = useRef<HostInstance>(null);
+  const { scrollSheetTo } = useOverlay();
+  const glow = useSharedValue(0);
+  useEffect(() => {
+    if (!on) return;
+    // Wait for the sheet to slide up, then scroll and glow (1.2 s on, 0.3 s fade).
+    const timer = setTimeout(() => {
+      scrollSheetTo(ref.current);
+      glow.set(withSequence(withTiming(1, { duration: 120 }), withDelay(1080, withTiming(0, { duration: 300 }))));
+    }, 460);
+    return () => clearTimeout(timer);
+  }, [on, glow, scrollSheetTo]);
+  const tint = useAnimatedStyle(() => ({ opacity: glow.get() }));
+  return (
+    <View ref={ref}>
+      {children}
+      <Animated.View pointerEvents="none" style={[styles.focusTint, tint]} />
+    </View>
+  );
+}
+
+/** Pins on top of each other: pick which note to open. */
+export function PinChooser({ notes, onPick }: { notes: Note[]; onPick: (n: Note) => void }) {
+  return (
+    <View>
+      <Text style={[styles.nheadTitle, { marginTop: 4, marginBottom: 10 }]}>{notes.length} notes here</Text>
+      {notes.map((n) => (
+        <Pressable key={n.id} accessibilityRole="button" onPress={() => onPick(n)} style={({ pressed }) => [styles.pickRow, pressed && { opacity: 0.7 }]}>
+          <Avatar k={n.by_key} size={24} />
+          <Text style={styles.ntime}>{fmt(n.time_seconds)}</Text>
+          <Text style={[styles.ntxt, styles.flex, { marginTop: 0 }]} numberOfLines={1}>
+            {n.body || (n.kind === 'draw' ? 'Drawing' : n.kind === 'voice' ? 'Voice note' : 'Pin')}
+          </Text>
+          <Icon name="chev" size={16} color={Color.meta} />
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function DraftRow({
   n,
   picture,
@@ -93,7 +135,9 @@ function DraftRow({
   register,
   onEdit,
   onDelete,
+  focused = false,
 }: {
+  focused?: boolean;
   n: Note;
   picture: ImageSource | null;
   tidying: boolean;
@@ -116,6 +160,7 @@ function DraftRow({
 
   return (
     <Animated.View layout={LinearTransition.duration(250)} exiting={FadeOut.duration(220)} style={flyStyle}>
+      <FocusRow on={focused}>
       <Swipeable
         ref={(m) => register(n.id, m)}
         enabled={flyIndex === null}
@@ -152,6 +197,7 @@ function DraftRow({
           </Pressable>
         </View>
       </Swipeable>
+      </FocusRow>
     </Animated.View>
   );
 }
@@ -169,6 +215,8 @@ export function NotesSheet({
   onEditDraft,
   onApprove,
   onSent,
+  focusId,
+  onSeekNote,
 }: {
   projectId: string;
   picture: ImageSource | null;
@@ -176,14 +224,19 @@ export function NotesSheet({
   onEditDraft: (n: Note) => void;
   onApprove: () => void;
   onSent: () => void;
+  /** Open on this note: right tab, scrolled to it, lit up for 1.5 s. */
+  focusId?: string | null;
+  /** Tap a sent note: jump the video to it. */
+  onSeekNote?: (n: Note) => void;
 }) {
   const project = useProject(projectId);
   const data = useReviewData(projectId);
   const { refreshProject, setLocal } = useProjects();
   const { closeSheet, openSheet, toast } = useOverlay();
-  const [tab, setTab] = useState<'send' | 'all'>(initialTab);
+  const focus = focusId ? data.notes.find((n) => n.id === focusId) : undefined;
+  const [tab, setTab] = useState<'send' | 'all'>(focus ? (focus.status === 'draft' ? 'send' : 'all') : initialTab);
   const [nv, setNv] = useState(0);
-  const [doneOpen, setDoneOpen] = useState(false);
+  const [doneOpen, setDoneOpen] = useState(!!focus?.done);
   const [tidying, setTidying] = useState(false);
   const [flying, setFlying] = useState(false);
   const swipes = useRef(new Map<string, SwipeableMethods>());
@@ -263,6 +316,7 @@ export function NotesSheet({
               send.map((n, i) => (
                 <DraftRow
                   key={n.id}
+                  focused={n.id === focusId}
                   n={n}
                   picture={picture}
                   tidying={tidying}
@@ -295,13 +349,24 @@ export function NotesSheet({
         </>
       ) : (
         <>
-          <Pressable accessibilityRole="button" onPress={() => setNv(versions[(versions.indexOf(nv) + 1) % versions.length])} style={styles.vchip}>
-            <Text style={styles.vchipText}>{nv ? `v${nv}` : 'All versions'}</Text>
+          <Chip label={nv ? `v${nv}` : 'All versions'} height={30} onPress={() => setNv(versions[(versions.indexOf(nv) + 1) % versions.length])} style={{ marginTop: 4, marginBottom: 2 }}>
             <Icon name="down" size={14} />
-          </Pressable>
+          </Chip>
           <View>
             {openA.length ? (
-              openA.map((n) => <AllRow key={n.id} n={n} picture={picture} v={v} nv={versionNumber(data, n.version_id)} projectId={projectId} openReply={() => openSheet(<ReplySheet projectId={projectId} note={n} onDone={() => openSheet(<NotesSheet {...{ projectId, picture, onEditDraft, onApprove, onSent }} initialTab="all" />)} />)} />)
+              openA.map((n) => (
+                <FocusRow key={n.id} on={n.id === focusId}>
+                  <AllRow
+                    n={n}
+                    picture={picture}
+                    v={v}
+                    nv={versionNumber(data, n.version_id)}
+                    projectId={projectId}
+                    onSeek={onSeekNote && (() => onSeekNote(n))}
+                    openReply={() => openSheet(<ReplySheet projectId={projectId} note={n} onDone={() => openSheet(<NotesSheet {...{ projectId, picture, onEditDraft, onApprove, onSent, onSeekNote }} initialTab="all" />)} />)}
+                  />
+                </FocusRow>
+              ))
             ) : (
               <Text style={styles.empty}>Nothing open.</Text>
             )}
@@ -314,7 +379,12 @@ export function NotesSheet({
                   <Icon name="down" size={16} color={Color.text2} />
                 </View>
               </Pressable>
-              {doneOpen && doneA.map((n) => <AllRow key={n.id} n={n} picture={picture} v={v} nv={versionNumber(data, n.version_id)} projectId={projectId} openReply={() => {}} />)}
+              {doneOpen &&
+                doneA.map((n) => (
+                  <FocusRow key={n.id} on={n.id === focusId}>
+                    <AllRow n={n} picture={picture} v={v} nv={versionNumber(data, n.version_id)} projectId={projectId} onSeek={onSeekNote && (() => onSeekNote(n))} openReply={() => {}} />
+                  </FocusRow>
+                ))}
             </>
           )}
           <View style={{ height: 20 }} />
@@ -324,13 +394,15 @@ export function NotesSheet({
   );
 }
 
-function AllRow({ n, picture, v, nv, projectId, openReply }: { n: Note; picture: ImageSource | null; v: number; nv: number; projectId: string; openReply: () => void }) {
+function AllRow({ n, picture, v, nv, projectId, openReply, onSeek }: { n: Note; picture: ImageSource | null; v: number; nv: number; projectId: string; openReply: () => void; onSeek?: () => void }) {
   const { toast } = useOverlay();
   const who = n.by_key === 'M' ? 'You' : person(n.by_key).name;
   return (
     <View style={[styles.nrow, n.done && { opacity: 0.35 }]}>
-      <NoteThumb picture={picture} n={n} />
-      <View style={styles.flex}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Go to ${fmt(n.time_seconds)}`} disabled={!onSeek} onPress={onSeek}>
+        <NoteThumb picture={picture} n={n} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Go to ${fmt(n.time_seconds)}`} disabled={!onSeek} onPress={onSeek} style={styles.flex}>
         <View style={styles.nwho}>
           <Avatar k={n.by_key} size={20} />
           <Text style={styles.nwhoName}>{who}</Text>
@@ -351,7 +423,7 @@ function AllRow({ n, picture, v, nv, projectId, openReply }: { n: Note; picture:
             <Text style={styles.nreply}>Reply</Text>
           </Pressable>
         )}
-      </View>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={n.done ? 'Reopen' : 'Mark done'}
@@ -594,6 +666,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginTop: 10,
   },
+  focusTint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(142,108,255,0.22)', borderRadius: 4 },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, borderBottomWidth: 1, borderBottomColor: Color.control },
   nrow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -682,24 +756,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 30,
     paddingHorizontal: 10,
-  },
-  vchip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: Color.control,
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  vchipText: {
-    fontFamily: Font.semibold,
-    fontSize: 14,
-    lineHeight: 18,
-    color: Color.white,
   },
   nwho: {
     flexDirection: 'row',

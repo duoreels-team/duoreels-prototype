@@ -5,11 +5,15 @@
  * Scrubbing and the range handles run on the UI thread (gesture-handler +
  * reanimated), so dragging stays smooth and the time label updates live.
  * Handles can't cross, the range is at least 1 s and stays inside the video.
+ * While you drag, the real video seeks at most every 150 ms, then once more on release.
+ *
+ * Pins: tap an avatar (44 pt area) to jump to that note. Pins that sit on top of each
+ * other are one tap target that hands back all their notes.
  */
 import { Image, type ImageSource } from 'expo-image';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -18,7 +22,7 @@ import { Avatar } from '@/components/brand/bits';
 import { Color } from '@/constants/brand';
 import { person } from '@/lib/people';
 
-export type Pin = { t: number; by: string };
+export type Pin = { id: string; t: number; by: string };
 export type RangeBar = { t: number; b: number };
 
 type Props = {
@@ -30,14 +34,35 @@ type Props = {
   range: { a: number; b: number } | null;
   onSeek: (t: number) => void;
   onRange: (a: number, b: number) => void;
-  /** True while a finger is on the strip (the screen turns off swipe-back). */
-  onTouch?: (active: boolean) => void;
-  style?: object;
+  /** Tap a pin: the ids of the note(s) under your finger. */
+  onPin?: (ids: string[]) => void;
+  /** The pin that's lit up (the note you jumped to). */
+  activePin?: string | null;
+  style?: StyleProp<ViewStyle>;
 };
 
 const HIT = 44;
+/** Room above the strip for the pin avatars (they hang 24 pt above it). */
+const PIN_BAND = 26;
+/** Seek the real video at most this often while dragging. */
+const SEEK_EVERY_MS = 150;
 
-export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRange, onTouch, style }: Props) {
+/** Pins closer than this many points share one tap target. */
+const CLUSTER_PT = 18;
+
+function clusterPins(pins: Pin[], width: number, duration: number) {
+  const sorted = [...pins].sort((x, y) => x.t - y.t);
+  const out: { x: number; pins: Pin[] }[] = [];
+  for (const p of sorted) {
+    const x = (Math.min(duration, Math.max(0, p.t)) / (duration || 1)) * width;
+    const last = out[out.length - 1];
+    if (last && x - last.x < CLUSTER_PT) last.pins.push(p);
+    else out.push({ x, pins: [p] });
+  }
+  return out;
+}
+
+export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRange, onPin, activePin, style }: Props) {
   const [w, setW] = useState(0);
   const width = useSharedValue(0);
   const dur = useSharedValue(duration || 1);
@@ -47,6 +72,7 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
   const b = useSharedValue(range?.b ?? 1);
   const handleDrag = useSharedValue(0);
   const start = useSharedValue(0);
+  const lastSeek = useSharedValue(0);
 
   useEffect(() => {
     dur.set(duration || 1);
@@ -63,7 +89,6 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
 
   const seekJS = (time: number) => onSeek(time);
   const rangeJS = (x: number, y: number) => onRange(x, y);
-  const touchJS = (on: boolean) => onTouch?.(on);
 
   /* scrub: tap or drag anywhere on the strip (off while the range box is up) */
   const scrub = usePanGesture({
@@ -74,19 +99,25 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
       scrubbing.set(1);
       const time = Math.min(1, Math.max(0, e.x / (width.get() || 1))) * dur.get();
       head.set(time);
-      scheduleOnRN(touchJS, true);
+      lastSeek.set(Date.now());
       scheduleOnRN(seekJS, time);
     },
     onUpdate: (e) => {
       'worklet';
+      // The playhead follows your finger on the UI thread; the video catches up every 150 ms.
       const time = Math.min(1, Math.max(0, e.x / (width.get() || 1))) * dur.get();
       head.set(time);
-      scheduleOnRN(seekJS, time);
+      const now = Date.now();
+      if (now - lastSeek.get() >= SEEK_EVERY_MS) {
+        lastSeek.set(now);
+        scheduleOnRN(seekJS, time);
+      }
     },
     onFinalize: () => {
       'worklet';
+      // The exact frame where you let go.
+      if (scrubbing.get()) scheduleOnRN(seekJS, head.get());
       scrubbing.set(0);
-      scheduleOnRN(touchJS, false);
     },
   });
 
@@ -97,7 +128,6 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
       'worklet';
       handleDrag.set(1);
       start.set(a.get());
-      scheduleOnRN(touchJS, true);
     },
     onUpdate: (e) => {
       'worklet';
@@ -108,7 +138,6 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
     onFinalize: () => {
       'worklet';
       handleDrag.set(0);
-      scheduleOnRN(touchJS, false);
     },
   });
 
@@ -119,7 +148,6 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
       'worklet';
       handleDrag.set(1);
       start.set(b.get());
-      scheduleOnRN(touchJS, true);
     },
     onUpdate: (e) => {
       'worklet';
@@ -130,7 +158,6 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
     onFinalize: () => {
       'worklet';
       handleDrag.set(0);
-      scheduleOnRN(touchJS, false);
     },
   });
 
@@ -141,46 +168,64 @@ export function Strip({ duration, t, frames, pins, ranges, range, onSeek, onRang
 
   const pos = (time: number) => `${Math.min(100, Math.max(0, (time / (duration || 1)) * 100))}%` as const;
 
+  const flat = StyleSheet.flatten(style) ?? {};
+  const groups = w > 0 && onPin ? clusterPins(pins, w, duration || 1) : [];
+
   return (
-    <GestureDetector gesture={scrub}>
-      <Animated.View
-        style={[styles.strip, style]}
-        onLayout={(e: LayoutChangeEvent) => {
-          setW(e.nativeEvent.layout.width);
-          width.set(e.nativeEvent.layout.width);
-        }}>
-        <Frames frames={frames} duration={duration} />
-        {pins.map((p, i) => (
-          <View key={`${p.t}-${p.by}-${i}`} pointerEvents="none" style={[styles.pin, { left: pos(p.t) }]}>
-            <Avatar k={p.by} size={22} />
-            <View style={[styles.pinLine, { backgroundColor: person(p.by).color }]} />
-          </View>
-        ))}
-        {ranges.map((r, i) => (
-          <View key={`r${i}`} pointerEvents="none" style={[styles.rbar, { left: pos(r.t), width: pos(r.b - r.t) }]} />
-        ))}
-        {range && w > 0 && (
-          <>
-            <Animated.View pointerEvents="none" style={[styles.rngbox, boxStyle]} />
-            <GestureDetector gesture={dragA}>
-              <Animated.View accessibilityLabel="Start of the part" style={[styles.hit, hitA]}>
-                <View style={styles.hnd}>
-                  <View style={styles.grip} />
-                </View>
-              </Animated.View>
-            </GestureDetector>
-            <GestureDetector gesture={dragB}>
-              <Animated.View accessibilityLabel="End of the part" style={[styles.hit, hitB]}>
-                <View style={styles.hnd}>
-                  <View style={styles.grip} />
-                </View>
-              </Animated.View>
-            </GestureDetector>
-          </>
-        )}
-        <Animated.View pointerEvents="none" style={[styles.ph, headStyle]} />
-      </Animated.View>
-    </GestureDetector>
+    // The wrapper reaches up over the pin avatars (same place on screen), so they can be tapped.
+    <View style={[flat, { marginTop: Number(flat.marginTop ?? 0) - PIN_BAND, paddingTop: PIN_BAND }]} pointerEvents="box-none">
+      <GestureDetector gesture={scrub}>
+        <Animated.View
+          style={styles.strip}
+          onLayout={(e: LayoutChangeEvent) => {
+            setW(e.nativeEvent.layout.width);
+            width.set(e.nativeEvent.layout.width);
+          }}>
+          <Frames frames={frames} duration={duration} />
+          {pins.map((p, i) => (
+            <View key={`${p.id}-${i}`} pointerEvents="none" style={[styles.pin, { left: pos(p.t) }, activePin === p.id && styles.pinOn]}>
+              <View style={[styles.pinRing, activePin === p.id && { borderColor: Color.white }]}>
+                <Avatar k={p.by} size={22} />
+              </View>
+              <View style={[styles.pinLine, { backgroundColor: person(p.by).color }]} />
+            </View>
+          ))}
+          {ranges.map((r, i) => (
+            <View key={`r${i}`} pointerEvents="none" style={[styles.rbar, { left: pos(r.t), width: pos(r.b - r.t) }]} />
+          ))}
+          {range && w > 0 && (
+            <>
+              <Animated.View pointerEvents="none" style={[styles.rngbox, boxStyle]} />
+              <GestureDetector gesture={dragA}>
+                <Animated.View accessibilityLabel="Start of the part" style={[styles.hit, hitA]}>
+                  <View style={styles.hnd}>
+                    <View style={styles.grip} />
+                  </View>
+                </Animated.View>
+              </GestureDetector>
+              <GestureDetector gesture={dragB}>
+                <Animated.View accessibilityLabel="End of the part" style={[styles.hit, hitB]}>
+                  <View style={styles.hnd}>
+                    <View style={styles.grip} />
+                  </View>
+                </Animated.View>
+              </GestureDetector>
+            </>
+          )}
+          <Animated.View pointerEvents="none" style={[styles.ph, headStyle]} />
+        </Animated.View>
+      </GestureDetector>
+      {/* Tap targets for the pins, on top of everything (44 × 44, centred on the avatar). */}
+      {groups.map((g) => (
+        <Pressable
+          key={g.pins.map((p) => p.id).join('-')}
+          accessibilityRole="button"
+          accessibilityLabel={g.pins.length > 1 ? `${g.pins.length} notes here` : 'Go to this note'}
+          onPress={() => onPin?.(g.pins.map((p) => p.id))}
+          style={[styles.pinHit, { left: g.x - HIT / 2 }]}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -231,46 +276,16 @@ function Frames({ frames, duration }: { frames: Props['frames']; duration: numbe
 }
 
 const styles = StyleSheet.create({
-  strip: {
-    height: 56,
-    borderRadius: 6,
-  },
-  frames: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    gap: 2,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  frame: {
-    flex: 1,
-    opacity: 0.85,
-    overflow: 'hidden',
-    backgroundColor: Color.surface,
-  },
-  pin: {
-    position: 'absolute',
-    top: -24,
-    marginLeft: -11,
-    alignItems: 'center',
-  },
-  pinLine: {
-    width: 2,
-    height: 58,
-    marginTop: 2,
-    opacity: 0.9,
-  },
-  rbar: {
-    position: 'absolute',
-    bottom: -8,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Color.violet,
-  },
+  strip: { height: 56, borderRadius: 6 },
+  frames: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 2, borderRadius: 6, overflow: 'hidden' },
+  frame: { flex: 1, opacity: 0.85, overflow: 'hidden', backgroundColor: Color.surface },
+  pin: { position: 'absolute', top: -24, marginLeft: -11, alignItems: 'center' },
+  pinOn: { zIndex: 5 },
+  pinRing: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent', margin: -2 },
+  // Avatar centre is 13 pt above the strip; the 44 pt target starts at the wrapper's top.
+  pinHit: { position: 'absolute', top: 0, width: HIT, height: HIT, zIndex: 6 },
+  pinLine: { width: 2, height: 58, marginTop: 2, opacity: 0.9 },
+  rbar: { position: 'absolute', bottom: -8, height: 4, borderRadius: 2, backgroundColor: Color.violet },
   rngbox: {
     position: 'absolute',
     top: -4,

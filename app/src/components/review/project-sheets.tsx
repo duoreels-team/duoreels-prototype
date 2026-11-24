@@ -3,22 +3,22 @@
  * ask (+1 day), approve, project details, versions, footage, money, people,
  * edit project (rename), deadline — plus the round path (prototype pathHTML).
  */
-import { Image, type ImageSource } from 'expo-image';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Avatar, BigButton, Tag } from '@/components/brand/bits';
+import { Avatar, BigButton, Chip, Tag } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { InviteSheet } from '@/components/new-project/sheets';
+import { FootageSheet, VersionsSection } from '@/components/project/files';
 import { Color, Font } from '@/constants/brand';
 import { askYesFields, logActivity, markProjectRead } from '@/lib/flow';
 import { dotDate, editorName, useCover, weekday, type Project } from '@/lib/projects';
-import { addDays, fmt, fullWeekday, money, shortDate, versionPicture, type Version } from '@/lib/review';
+import { addDays, fmt, fullWeekday, money } from '@/lib/review';
+import { useProjectFiles } from '@/lib/project-files';
 import { useReviewData } from '@/lib/review-store';
-import { SAMPLE_IMAGES } from '@/lib/sample-images';
 import { supabase } from '@/lib/supabase';
-import { useSignedUrl } from '@/lib/storage';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
 
@@ -199,15 +199,8 @@ export function DetailsSheet({
   const p = useProject(projectId);
   const data = useReviewData(projectId);
   const { openSheet, closeSheet } = useOverlay();
-  const [counts, setCounts] = useState({ clips: 0, refs: 0 });
-
-  useEffect(() => {
-    supabase
-      .from('footage')
-      .select('kind')
-      .eq('project_id', projectId)
-      .then(({ data: rows }) => setCounts({ clips: (rows ?? []).filter((r) => r.kind === 'clip').length, refs: (rows ?? []).filter((r) => r.kind === 'reference').length }));
-  }, [projectId]);
+  const files = useProjectFiles(projectId);
+  const counts = { clips: files.rows.filter((r) => r.kind === 'clip').length, refs: files.rows.filter((r) => r.kind === 'reference').length };
 
   if (!p) return null;
   const v = p.current_version;
@@ -219,8 +212,8 @@ export function DetailsSheet({
   };
   const rows: [IconName, string, string, () => void][] = [
     ['compare', 'Versions', v ? `v${v} current${v > 1 ? ` · v${v - 1}` : ''}${v > 2 ? ' · v1' : ''}` : `v1 comes from ${editorName(p)}`, go(onVersions)],
-    ['footage', 'Footage', `${p.is_sample ? 6 : counts.clips} clip${(p.is_sample ? 6 : counts.clips) === 1 ? '' : 's'} · received`, go(() => openSheet(<FootageSheet projectId={projectId} />))],
-    ['list', 'Brief and references', `${p.is_sample ? 2 : counts.refs} reference video${(p.is_sample ? 2 : counts.refs) === 1 ? '' : 's'}`, go(() => router.push(`/project/${projectId}/brief`))],
+    ['footage', 'Footage', `${p.is_sample && !counts.clips ? 6 : counts.clips} clip${(p.is_sample && !counts.clips ? 6 : counts.clips) === 1 ? '' : 's'} · tap to watch or add`, go(() => openSheet(<FootageSheet projectId={projectId} />))],
+    ['list', 'Brief and references', `${p.is_sample && !counts.refs ? 2 : counts.refs} reference${(p.is_sample && !counts.refs ? 2 : counts.refs) === 1 ? '' : 's'}${p.brief ? ' · brief written' : ''}`, go(() => router.push(`/project/${projectId}/brief`))],
     ['cover', 'Cover and caption', p.cover_seconds !== null ? `Frame at ${fmt(p.cover_seconds)} · tap to change` : 'Auto: frame at 0:21 · tap to change', go(() => router.push(`/project/${projectId}/cover`))],
     ['money', 'Money', `$${m.price} · $${m.onApproval} on approval`, go(() => openSheet(<MoneySheet projectId={projectId} />))],
     ['people', 'People', `You + ${editorName(p)} · Share link to invite`, go(() => openSheet(<PeopleSheet projectId={projectId} />))],
@@ -258,43 +251,16 @@ export function DetailsSheet({
 
 /* ---------- versions (versions / compareFromSheet) ---------- */
 
-function VersionThumb({ v, dim }: { v: Version; dim: number }) {
-  const [src, setSrc] = useState<ImageSource | null>(null);
-  useEffect(() => {
-    versionPicture(v).then(setSrc);
-  }, [v]);
-  return (
-    <View style={[styles.vthumb, { opacity: 1 - dim }]}>
-      {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" />}
-    </View>
-  );
-}
-
-export function VersionsSheet({ projectId, onCompare }: { projectId: string; onCompare: () => void }) {
+/** v1…vN with picture, date and note count; tap one to watch it. */
+export function VersionsSheet({ projectId, onCompare }: { projectId: string; onCompare?: () => void }) {
   const p = useProject(projectId);
-  const data = useReviewData(projectId);
-  const { closeSheet } = useOverlay();
   if (!p) return null;
-  const list = [...data.versions].reverse();
   const cur = p.current_version;
   return (
     <View>
-      <Text style={styles.t20}>Versions</Text>
-      <View style={styles.list}>
-        {list.map((v, i) => (
-          <Row
-            key={v.id}
-            first={i === 0}
-            lead={<VersionThumb v={v} dim={(cur - v.number) * 0.15} />}
-            title={`v${v.number}${v.number === cur ? ' · current' : ''}`}
-            sub={`${shortDate(v.created_at)} · ${v.number === cur ? (cur > 1 ? 'your notes fixed' : 'first cut') : 'reviewed'}`}
-            right={v.number === cur ? <Icon name="check" size={18} /> : undefined}
-            onPress={closeSheet}
-          />
-        ))}
-        {!list.length && <Row first title="No versions yet" sub={`v1 comes from ${editorName(p)}`} />}
-      </View>
-      {cur > 1 && (
+      <Text style={[styles.t20, { marginBottom: 10 }]}>Versions</Text>
+      <VersionsSection projectId={projectId} />
+      {cur > 1 && onCompare && (
         <View style={{ marginTop: 14 }}>
           <BigButton label={`Compare v${cur - 1} and v${cur}`} tone="control" onPress={onCompare} />
         </View>
@@ -303,68 +269,9 @@ export function VersionsSheet({ projectId, onCompare }: { projectId: string; onC
   );
 }
 
-/* ---------- footage ---------- */
+/* ---------- footage: the shared section (components/project/files) ---------- */
 
-type FootRow = { id: string; title: string | null; file_path: string | null; link_url: string | null; thumb_path: string | null; duration_seconds: number | null; size_bytes: number | null; created_at: string; kind: string };
-
-function FootTile({ f }: { f: FootRow }) {
-  const url = useSignedUrl(f.thumb_path);
-  return (
-    <View style={styles.reel}>
-      {url ? <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={[StyleSheet.absoluteFill, styles.linkTile]}><Icon name="link" size={20} color={Color.text2} /></View>}
-      {f.duration_seconds ? (
-        <View style={styles.dur}>
-          <Text style={styles.durText}>{fmt(Number(f.duration_seconds))}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-const SAMPLE_FOOT: (keyof typeof SAMPLE_IMAGES)[] = ['mr', 'c1', 'c3', 'player', 'c2', 'cafe'];
-
-export function FootageSheet({ projectId }: { projectId: string }) {
-  const p = useProject(projectId);
-  const [rows, setRows] = useState<FootRow[] | null>(null);
-  useEffect(() => {
-    supabase
-      .from('footage')
-      .select('id, title, file_path, link_url, thumb_path, duration_seconds, size_bytes, created_at, kind')
-      .eq('project_id', projectId)
-      .eq('kind', 'clip')
-      .order('created_at')
-      .then(({ data }) => setRows((data as FootRow[]) ?? []));
-  }, [projectId]);
-  if (!p) return null;
-  const total = (rows ?? []).reduce((s, r) => s + (r.size_bytes ?? 0), 0);
-  const meta = p.is_sample
-    ? '6 clips · 1.4 GB · received Oct 12'
-    : rows === null
-      ? 'Loading…'
-      : `${rows.length} clip${rows.length === 1 ? '' : 's'}${total ? ` · ${(total / 1e9 >= 1 ? `${(total / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(total / 1e6))} MB`)}` : ''} · received ${rows[0] ? shortDate(rows[0].created_at) : ''}`;
-  return (
-    <View>
-      <Text style={[styles.t20, { marginBottom: 4 }]}>Footage</Text>
-      <Text style={[styles.meta, { marginBottom: 12 }]}>{meta}</Text>
-      <View style={styles.grid3}>
-        {p.is_sample
-          ? SAMPLE_FOOT.map((k, i) => (
-              <View key={k} style={styles.reel}>
-                <Image source={SAMPLE_IMAGES[k]} style={StyleSheet.absoluteFill} contentFit="cover" />
-                <View style={styles.dur}>
-                  <Text style={styles.durText}>0:{12 + i * 4}</Text>
-                </View>
-              </View>
-            ))
-          : (rows ?? []).map((f) => <FootTile key={f.id} f={f} />)}
-      </View>
-      <View style={{ marginTop: 14 }}>
-        {/* In the prototype this button doesn't open anything yet. */}
-        <BigButton label="Add clips or a Drive link" tone="control" onPress={() => {}} />
-      </View>
-    </View>
-  );
-}
+export { FootageSheet };
 
 /* ---------- money ---------- */
 
@@ -446,9 +353,7 @@ export function EditProjectSheet({ projectId }: { projectId: string }) {
       <Text style={styles.lbl}>TYPE · USED BY FILTER</Text>
       <View style={styles.chips}>
         {TYPES.map((t) => (
-          <Pressable key={t} accessibilityRole="button" accessibilityState={{ selected: type === t }} onPress={() => setType(t)} style={[styles.chip, type === t && styles.chipOn]}>
-            <Text style={[styles.chipText, type === t && { color: Color.black }]}>{t}</Text>
-          </Pressable>
+          <Chip key={t} label={t} on={type === t} onPress={() => setType(t)} />
         ))}
       </View>
       <Text style={styles.lbl}>COVER</Text>
@@ -509,9 +414,7 @@ export function DeadlineSheet({ projectId }: { projectId: string }) {
       </Text>
       <View style={styles.chips}>
         {days.map((d) => (
-          <Pressable key={d} accessibilityRole="button" accessibilityState={{ selected: day === d }} onPress={() => setDay(d)} style={[styles.chip, day === d && styles.chipOn]}>
-            <Text style={[styles.chipText, day === d && { color: Color.black }]}>{weekday(d)}</Text>
-          </Pressable>
+          <Chip key={d} label={weekday(d)} on={day === d} onPress={() => setDay(d)} />
         ))}
       </View>
       <Text style={styles.lbl}>TIME</Text>
@@ -688,45 +591,6 @@ const styles = StyleSheet.create({
     fontFamily: Font.semibold,
     color: Color.white,
   },
-  vthumb: {
-    width: 40,
-    height: 54,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: Color.surface,
-  },
-  grid3: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  reel: {
-    width: '31.9%',
-    aspectRatio: 9 / 13,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: Color.control,
-  },
-  linkTile: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dur: {
-    position: 'absolute',
-    left: 4,
-    bottom: 4,
-    height: 20,
-    paddingHorizontal: 5,
-    borderRadius: 5,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-  },
-  durText: {
-    fontFamily: Font.mono,
-    fontSize: 13,
-    lineHeight: 16,
-    color: Color.white,
-  },
   field: {
     height: 48,
     borderRadius: 8,
@@ -742,24 +606,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  chip: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3A3A42',
-    justifyContent: 'center',
-  },
-  chipOn: {
-    backgroundColor: Color.white,
-    borderColor: Color.white,
-  },
-  chipText: {
-    fontFamily: Font.semibold,
-    fontSize: 14,
-    lineHeight: 18,
-    color: Color.white,
   },
   coverThumb: {
     width: 56,

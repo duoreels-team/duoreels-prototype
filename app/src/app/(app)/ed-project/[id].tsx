@@ -8,16 +8,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, BigButton, IconButton, Tag } from '@/components/brand/bits';
+import { Avatar, BigButton, Chip, IconButton, Tag } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { UploadBar } from '@/components/brand/upload-bar';
 import { DButton, DecisionBar } from '@/components/review/bars';
-import { PathRow } from '@/components/review/project-sheets';
+import { FocusRow, PinChooser } from '@/components/review/note-sheets';
+import { PathRow, VersionsSheet } from '@/components/review/project-sheets';
+import { BriefSheet, FootageSheet } from '@/components/project/files';
 import { Stage, type Clock } from '@/components/review/stage';
 import { Strip } from '@/components/review/strip';
 import { Color, Font } from '@/constants/brand';
@@ -51,10 +53,10 @@ function useMedia(v: Version | null) {
 
 /* ---------- Maya's notes (edNotesSheet) ---------- */
 
-function EdNotesSheet({ projectId, me, onUpload }: { projectId: string; me: string; onUpload: () => void }) {
+function EdNotesSheet({ projectId, me, onUpload, focusId, onSeekNote }: { projectId: string; me: string; onUpload: () => void; focusId?: string | null; onSeekNote?: (n: Note) => void }) {
   const p = useProject(projectId);
   const data = useReviewData(projectId);
-  const [doneOpen, setDoneOpen] = useState(false);
+  const [doneOpen, setDoneOpen] = useState(() => !!focusId && !!data.notes.find((n) => n.id === focusId)?.done);
   if (!p) return null;
   const v = p.current_version;
   const ed = p.editor_keys[0] ?? 'L';
@@ -66,8 +68,9 @@ function EdNotesSheet({ projectId, me, onUpload }: { projectId: string; me: stri
   const row = (n: Note) => {
     const nv = versionNumber(data, n.version_id);
     return (
-      <View key={n.id} style={[styles.nrow, n.done && { opacity: 0.35 }]}>
-        <View style={styles.flex}>
+      <FocusRow key={n.id} on={n.id === focusId}>
+      <View style={[styles.nrow, n.done && { opacity: 0.35 }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Go to ${fmt(n.time_seconds)}`} disabled={!onSeekNote} onPress={() => onSeekNote?.(n)} style={styles.flex}>
           <View style={styles.nwho}>
             <Avatar k="M" size={20} />
             <Text style={styles.nwhoName}>{me}</Text>
@@ -81,7 +84,7 @@ function EdNotesSheet({ projectId, me, onUpload }: { projectId: string; me: stri
               <Text style={styles.nrepText}>{n.reply_text}</Text>
             </View>
           )}
-        </View>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={n.done ? 'Reopen' : 'Mark fixed'}
@@ -91,6 +94,7 @@ function EdNotesSheet({ projectId, me, onUpload }: { projectId: string; me: stri
           {n.done && <Icon name="check" size={16} strokeWidth={2.4} />}
         </Pressable>
       </View>
+      </FocusRow>
     );
   };
 
@@ -140,10 +144,7 @@ function EdUploadSheet({ project, me, open, onPick, onLink }: { project: Project
       <Text style={styles.lbl}>OR PASTE A LINK</Text>
       <View style={styles.chips}>
         {['Google Drive', 'Dropbox', 'iCloud Drive', 'WeTransfer', 'Frame.io', 'Any link'].map((n) => (
-          <Pressable key={n} accessibilityRole="button" onPress={() => setLinkOpen(n)} style={[styles.chip, linkOpen === n && styles.chipOn]}>
-            <Icon name="link" size={14} color={linkOpen === n ? Color.black : Color.white} />
-            <Text style={[styles.chipText, linkOpen === n && { color: Color.black }]}>{n}</Text>
-          </Pressable>
+          <Chip key={n} icon="link" iconSize={14} label={n} height={34} on={linkOpen === n} onPress={() => setLinkOpen(n)} />
         ))}
       </View>
       {linkOpen && (
@@ -305,7 +306,9 @@ export default function EditorProject() {
 
   const notes = useMemo(() => data.notes.filter((n) => n.by_key === 'M' && n.status === 'sent' && n.kind !== 'pin'), [data.notes]);
   const open = notes.filter((n) => !n.done);
-  const pins = useMemo(() => (cur ? notes.filter((n) => n.version_id === cur.id || !n.done).map((n) => ({ t: n.time_seconds, by: 'M' })) : []), [notes, cur]);
+  const pins = useMemo(() => (cur ? notes.filter((n) => n.version_id === cur.id || !n.done).map((n) => ({ id: n.id, t: n.time_seconds, by: 'M' })) : []), [notes, cur]);
+  const [activePin, setActivePin] = useState<string | null>(null);
+  const pinTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onTime = useCallback((x: number) => setT(x), []);
   const onEnd = useCallback(() => setClock((c) => ({ ...c, playing: false })), []);
 
@@ -326,6 +329,53 @@ export default function EditorProject() {
   const seek = (x: number) => {
     setT(x);
     setClock((c) => ({ playing: false, seekTo: x, seekNonce: c.seekNonce + 1 }));
+  };
+
+  /* tap a pin → that note (same as the creator's review screen) */
+  const lightPin = (noteId: string) => {
+    setActivePin(noteId);
+    if (pinTimer.current) clearTimeout(pinTimer.current);
+    pinTimer.current = setTimeout(() => setActivePin(null), 1500);
+  };
+  const openNotes = (focusId: string | null = null) =>
+    openSheet(
+      <EdNotesSheet
+        projectId={id}
+        me={me}
+        focusId={focusId}
+        onSeekNote={(n) => {
+          closeSheet();
+          seek(n.time_seconds);
+          lightPin(n.id);
+        }}
+        onUpload={() => {
+          closeSheet();
+          setTimeout(upload, 420);
+        }}
+      />,
+    );
+  const jumpToNote = (noteId: string) => {
+    const n = notes.find((x) => x.id === noteId);
+    if (!n) return;
+    seek(n.time_seconds);
+    lightPin(n.id);
+    openNotes(n.id);
+  };
+  const onPin = (ids: string[]) => {
+    if (ids.length === 1) {
+      jumpToNote(ids[0]);
+      return;
+    }
+    setClock((c) => ({ ...c, playing: false }));
+    openSheet(
+      <PinChooser
+        notes={ids.map((x) => notes.find((n) => n.id === x)).filter((n): n is Note => !!n)}
+        onPick={(n) => {
+          closeSheet();
+          setTimeout(() => jumpToNote(n.id), 420);
+        }}
+      />,
+    );
   };
 
   async function pickVideo() {
@@ -386,16 +436,9 @@ export default function EditorProject() {
     toast(`Saved ${ok} clip${ok === 1 ? '' : 's'} to Photos`);
   }
 
-  function briefSheet() {
-    openSheet(
-      <View>
-        <Text style={styles.t20}>Brief</Text>
-        <View style={[styles.card, { padding: 14 }]}>
-          <Text style={styles.t15}>{p!.brief || 'No brief yet. Ask in a message.'}</Text>
-        </View>
-      </View>,
-    );
-  }
+  // Same Footage / Brief and references sections as the creator's project details.
+  const footageSheet = () => openSheet(<FootageSheet projectId={id} />);
+  const briefSheet = () => openSheet(<BriefSheet projectId={id} />);
 
   function replySheet() {
     openSheet(<ReplySheet me={me} onSend={async (txt) => {
@@ -414,18 +457,20 @@ export default function EditorProject() {
         <View style={{ gap: 10, marginTop: 14 }}>
           {(
             [
-              ['compare', 'Versions', v ? `v${v} current${v > 1 ? ` · v${v - 1}` : ''}${v > 2 ? ' · v1' : ''}` : 'No version yet'],
-              ['footage', 'Footage', p!.is_sample ? '6 clips · 2.4 GB' : 'From New project · tap ↓ to save'],
-              ['money', 'Money', `${usd(m.now)} earned · ${usd(m.onApproval)} on approval`],
-            ] as [IconName, string, string][]
-          ).map(([i, title, sub]) => (
-            <View key={title} style={[styles.card, styles.row]}>
+              ['compare', 'Versions', v ? `v${v} current${v > 1 ? ` · v${v - 1}` : ''}${v > 2 ? ' · v1' : ''}` : 'No version yet', () => openSheet(<VersionsSheet projectId={id} />)],
+              ['footage', 'Footage', 'Watch, add or save the clips', footageSheet],
+              ['list', 'Brief and references', p!.brief ? 'Brief written · tap to read' : 'No brief yet', briefSheet],
+              ['money', 'Money', `${usd(m.now)} earned · ${usd(m.onApproval)} on approval`, null],
+            ] as [IconName, string, string, (() => void) | null][]
+          ).map(([i, title, sub, onPress]) => (
+            <Pressable key={title} accessibilityRole="button" disabled={!onPress} onPress={() => onPress && (closeSheet(), setTimeout(onPress, 380))} style={({ pressed }) => [styles.card, styles.row, pressed && { opacity: 0.8 }]}>
               <Icon name={i} size={22} />
               <View style={styles.flex}>
                 <Text style={styles.rowTitle}>{title}</Text>
                 <Text style={styles.meta}>{sub}</Text>
               </View>
-            </View>
+              {onPress && <Icon name="chev" size={18} />}
+            </Pressable>
           ))}
         </View>
       </View>,
@@ -473,7 +518,7 @@ export default function EditorProject() {
 
   const tools: [IconName, string, () => void, boolean][] = [
     ['upload', 'Upload', upload, waiting || p.status === 'done'],
-    ['footage', 'Footage', saveFootage, false],
+    ['footage', 'Footage', footageSheet, false],
     ['list', 'Brief', briefSheet, false],
     ['chat', 'Reply', replySheet, false],
   ];
@@ -520,7 +565,19 @@ export default function EditorProject() {
         </View>
       </View>
 
-      <Strip style={{ marginTop: 22, marginBottom: 8, marginHorizontal: 16 }} duration={dur} t={t} frames={v ? { picture, videoUrl } : 'empty'} pins={pins} ranges={[]} range={null} onSeek={seek} onRange={() => {}} />
+      <Strip
+        style={{ marginTop: 22, marginBottom: 8, marginHorizontal: 16 }}
+        duration={dur}
+        t={t}
+        frames={v ? { picture, videoUrl } : 'empty'}
+        pins={pins}
+        onPin={onPin}
+        activePin={activePin}
+        ranges={[]}
+        range={null}
+        onSeek={seek}
+        onRange={() => {}}
+      />
 
       {decide}
 
@@ -533,7 +590,7 @@ export default function EditorProject() {
             </Text>
           </Pressable>
         ))}
-        <Pressable accessibilityRole="button" onPress={() => openSheet(<EdNotesSheet projectId={id} me={me} onUpload={() => { closeSheet(); setTimeout(upload, 420); }} />)} style={styles.notesbtn}>
+        <Pressable accessibilityRole="button" onPress={() => openNotes()} style={styles.notesbtn}>
           <Text style={styles.notesText}>NOTES</Text>
           {open.length > 0 && (
             <View style={styles.badge}>
@@ -620,9 +677,6 @@ const styles = StyleSheet.create({
   empty: { fontFamily: Font.regular, fontSize: 14, lineHeight: 20, color: Color.meta, textAlign: 'center', paddingVertical: 30 },
   drop: { alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#3A3A42' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42' },
-  chipOn: { backgroundColor: Color.white, borderColor: Color.white },
-  chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   linkRow: { flexDirection: 'row', alignItems: 'center', height: 48, marginTop: 12, paddingLeft: 14, paddingRight: 4, borderRadius: 12, backgroundColor: Color.control, borderWidth: 1.5, borderColor: 'transparent' },
   linkInput: { flex: 1, minWidth: 0, fontFamily: Font.regular, fontSize: 15, color: Color.white },
   hint: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },

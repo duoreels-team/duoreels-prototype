@@ -11,7 +11,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import Animated, { Easing, Keyframe, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
+import { Avatar, BigButton, Chip, IconButton } from '@/components/brand/bits';
+import { useAuth } from '@/providers/auth-provider';
 import { Icon } from '@/components/brand/icons';
 import { StripeHeader } from '@/components/brand/stripe-header';
 import { MarketFilterSheet, ReelTile } from '@/components/market/bits';
@@ -31,6 +32,7 @@ const slideIn = (i: number) =>
 export default function MarketplaceScreen() {
   const insets = useSafeAreaInsets();
   const market = useMarket();
+  const { profile } = useAuth();
   const { openSheet, closeSheet } = useOverlay();
   const [q, setQ] = useState('');
   const [mf, setMf] = useState<string[]>([]);
@@ -75,41 +77,45 @@ export default function MarketplaceScreen() {
                 </Pressable>
               )}
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Filter"
-              onPress={() =>
-                openSheet(
-                  <MarketFilterSheet
-                    editors={market.editors}
-                    q={q}
-                    value={mf}
-                    sort={sort}
-                    onShow={(chips, s) => {
-                      setMf(chips);
-                      setSort(s);
-                      closeSheet();
-                    }}
-                  />,
-                )
-              }
-              style={[styles.filterBtn, mf.length > 0 && styles.filterOn]}>
-              <Icon name="filter" size={18} color={mf.length ? Color.black : Color.white} />
+            <View>
+              <Chip
+                accessibilityLabel="Filter"
+                icon="filter"
+                iconSize={18}
+                on={mf.length > 0}
+                height={48}
+                width={56}
+                onPress={() =>
+                  openSheet(
+                    <MarketFilterSheet
+                      editors={market.editors}
+                      q={q}
+                      value={mf}
+                      sort={sort}
+                      myTypes={profile?.my_types ?? []}
+                      onShow={(chips, s2) => {
+                        setMf(chips);
+                        setSort(s2);
+                        closeSheet();
+                      }}
+                    />,
+                  )
+                }
+              />
               {mf.length > 0 && (
-                <View style={styles.badge}>
+                <View style={styles.badge} pointerEvents="none">
                   <Text style={styles.badgeText}>{mf.length}</Text>
                 </View>
               )}
-            </Pressable>
+            </View>
           </View>
 
           {mf.length > 0 && (
             <View style={styles.chips}>
               {mf.map((a) => (
-                <Pressable key={a} accessibilityRole="button" accessibilityLabel={`Remove ${a}`} onPress={() => setMf((m) => m.filter((x) => x !== a))} style={styles.chip}>
-                  <Text style={styles.chipText}>{a}</Text>
+                <Chip key={a} label={a} height={28} accessibilityLabel={`Remove ${a}`} onPress={() => setMf((m) => m.filter((x) => x !== a))}>
                   <Icon name="close" size={13} strokeWidth={2} />
-                </Pressable>
+                </Chip>
               ))}
             </View>
           )}
@@ -203,13 +209,9 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
   field: { flex: 1, height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: Color.surface },
   input: { flex: 1, minWidth: 0, fontFamily: Font.regular, fontSize: 15, color: Color.white },
-  filterBtn: { width: 48, height: 48, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42', alignItems: 'center', justifyContent: 'center' },
-  filterOn: { backgroundColor: Color.white, borderColor: Color.white },
-  badge: { position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: Color.violet, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -6, right: -2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: Color.violet, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: Font.bold, fontSize: 14, lineHeight: 18, color: Color.black },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  chip: { height: 28, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42' },
-  chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingHorizontal: 14, marginTop: 12, borderRadius: 12, backgroundColor: Color.surface },
   card: { padding: 12, borderRadius: 12, backgroundColor: Color.surface },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },

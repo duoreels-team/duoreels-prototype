@@ -10,6 +10,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Chip } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { fmt } from '@/lib/review';
@@ -76,12 +77,12 @@ export function AttachedImage({ uri, path, size = 56, onRemove }: { uri?: string
 export function LinkChip({ url, onRemove }: { url: string; onRemove?: () => void }) {
   return (
     <View style={styles.chipRow}>
-      <Pressable accessibilityRole="link" accessibilityLabel={`Open ${url}`} onPress={() => WebBrowser.openBrowserAsync(url)} style={styles.chip}>
+      <Chip height={30} accessibilityLabel={`Open ${url}`} onPress={() => WebBrowser.openBrowserAsync(url)} style={styles.chip}>
         <Icon name="link" size={14} color={Color.violet} />
         <Text style={styles.chipText} numberOfLines={1}>
           {hostOf(url)}
         </Text>
-      </Pressable>
+      </Chip>
       {onRemove && (
         <Pressable accessibilityRole="button" accessibilityLabel="Remove link" onPress={onRemove} hitSlop={10} style={styles.chipX}>
           <Icon name="close" size={14} color={Color.text2} />
@@ -101,8 +102,8 @@ export function AudioChip({ uri, path, seconds, onRemove }: { uri?: string | nul
   const total = status.duration || seconds || 0;
   return (
     <View style={styles.chipRow}>
-      <Pressable
-        accessibilityRole="button"
+      <Chip
+        height={30}
         accessibilityLabel={status.playing ? 'Pause voice note' : 'Play voice note'}
         onPress={() => {
           if (!src) return;
@@ -116,7 +117,7 @@ export function AudioChip({ uri, path, seconds, onRemove }: { uri?: string | nul
         <Icon name={status.playing ? 'pause' : 'play'} size={14} color={Color.violet} />
         <Icon name="mic" size={14} color={Color.text2} />
         <Text style={styles.chipMono}>{status.playing ? fmt(status.currentTime) : fmt(total)}</Text>
-      </Pressable>
+      </Chip>
       {onRemove && (
         <Pressable accessibilityRole="button" accessibilityLabel="Remove voice note" onPress={onRemove} hitSlop={10} style={styles.chipX}>
           <Icon name="close" size={14} color={Color.text2} />
@@ -196,17 +197,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     maxWidth: '100%',
   },
-  chip: {
-    flexShrink: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#3A3A42',
-  },
+  chip: { flexShrink: 1 },
   chipText: {
     flexShrink: 1,
     fontFamily: Font.medium,

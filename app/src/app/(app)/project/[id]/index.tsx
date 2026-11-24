@@ -5,7 +5,7 @@
  */
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { Image, type ImageSource } from 'expo-image';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,7 +19,7 @@ import { DButton, DecisionBar, DrawToolBar, ToolBar, VoiceBar, type ToolKey } fr
 import { DownloadOverlay } from '@/components/review/download-overlay';
 import { captureDrawing, DrawingOverlay, DrawLayer, strokesToSvg, type DrawTool, type Stroke } from '@/components/review/draw-layer';
 import { NoteSheet, type Drawing, type NoteDraft } from '@/components/review/note-sheet';
-import { NotesSheet } from '@/components/review/note-sheets';
+import { NotesSheet, PinChooser } from '@/components/review/note-sheets';
 import { ApproveSheet, DetailsSheet, EditProjectSheet, useAskActions, VersionsSheet } from '@/components/review/project-sheets';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Stage, type Clock } from '@/components/review/stage';
@@ -116,8 +116,6 @@ export default function ReviewScreen() {
   // While you talk: [seconds into the recording, video time] every 250 ms.
   const voiceTrack = useRef<[number, number][]>([]);
   const voiceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [touchingStrip, setTouchingStrip] = useState(false);
-  const navigation = useNavigation();
   const tNow = useRef(t);
   useEffect(() => {
     tNow.current = t;
@@ -132,11 +130,8 @@ export default function ReviewScreen() {
     loadReview(id);
   }, [id]);
 
-  // No swipe-back while you drag on the strip, draw, set a range or talk.
-  const holdStill = touchingStrip || mode === 'range' || mode === 'draw' || mode === 'voice' || mode === 'voiceWorking';
-  useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !holdStill, fullScreenGestureEnabled: false });
-  }, [navigation, holdStill]);
+  // Swipe-back is off for this whole screen (see (app)/_layout): the strip, range and
+  // drawing all drag sideways. Leave with the back button.
 
   /* ---------- clock ---------- */
 
@@ -244,14 +239,23 @@ export default function ReviewScreen() {
     );
   };
 
-  const openNotes = (tab: 'send' | 'all' = 'send') => {
+  const openNotes = (tab: 'send' | 'all' = 'send', focusId: string | null = null) => {
     if (mode === 'voiceDone') setMode(null);
     const sheet = (initialTab: 'send' | 'all') => (
       <NotesSheet
         projectId={id}
         picture={picture}
         initialTab={initialTab}
+        focusId={focusId}
+        onSeekNote={(n) => {
+          // Tap a note: close the sheet and show that moment.
+          closeSheet();
+          pause();
+          seek(n.time_seconds);
+          lightPin(n.id);
+        }}
         onEditDraft={(n) => {
+          seek(n.time_seconds);
           closeSheet();
           setTimeout(() => openNote({ t: n.time_seconds, edit: n }), 420);
         }}
@@ -263,6 +267,41 @@ export default function ReviewScreen() {
       />
     );
     openSheet(sheet(tab));
+  };
+
+  /* ---------- tap a pin on the timeline → that note ---------- */
+
+  const [activePin, setActivePin] = useState<string | null>(null);
+  const pinTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lightPin = (noteId: string) => {
+    setActivePin(noteId);
+    if (pinTimer.current) clearTimeout(pinTimer.current);
+    pinTimer.current = setTimeout(() => setActivePin(null), 1500);
+  };
+  const jumpToNote = (noteId: string) => {
+    const n = data.notes.find((x) => x.id === noteId);
+    if (!n) return;
+    pause();
+    seek(n.time_seconds);
+    lightPin(n.id);
+    openNotes(n.status === 'draft' ? 'send' : 'all', n.id);
+  };
+  const onPin = (ids: string[]) => {
+    if (ids.length === 1) {
+      jumpToNote(ids[0]);
+      return;
+    }
+    const list = ids.map((x) => data.notes.find((n) => n.id === x)).filter((n): n is Note => !!n);
+    pause();
+    openSheet(
+      <PinChooser
+        notes={list}
+        onPick={(n) => {
+          closeSheet();
+          setTimeout(() => jumpToNote(n.id), 420);
+        }}
+      />,
+    );
   };
 
   /* ---------- tools ---------- */
@@ -686,6 +725,8 @@ export default function ReviewScreen() {
           t={t}
           frames={v ? { picture, videoUrl } : 'empty'}
           pins={pinList}
+          onPin={onPin}
+          activePin={activePin}
           ranges={rangeBars}
           range={mode === 'range' ? range : null}
           onSeek={(time) => {
@@ -693,7 +734,6 @@ export default function ReviewScreen() {
             seek(time);
           }}
           onRange={(a, b) => setRange({ a, b })}
-          onTouch={setTouchingStrip}
         />
       )}
 

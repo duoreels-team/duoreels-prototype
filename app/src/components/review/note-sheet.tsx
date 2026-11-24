@@ -14,7 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 
-import { Avatar } from '@/components/brand/bits';
+import { Avatar, Chip } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { AttachedImage, AudioChip, LinkChip, normaliseLink, RecordingBar } from '@/components/review/attachments';
 import { DrawingOverlay } from '@/components/review/draw-layer';
@@ -294,14 +294,8 @@ export function NoteSheet({
 
       {imageMenu && (
         <View style={styles.menu}>
-          <Pressable accessibilityRole="button" onPress={fromPhotos} style={styles.menuChip}>
-            <Icon name="image" size={16} />
-            <Text style={styles.menuText}>Photos</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={fromFiles} style={styles.menuChip}>
-            <Icon name="doc" size={16} />
-            <Text style={styles.menuText}>Files</Text>
-          </Pressable>
+          <Chip icon="image" label="Photos" height={36} onPress={fromPhotos} />
+          <Chip icon="doc" label="Files" height={36} onPress={fromFiles} />
         </View>
       )}
 
@@ -392,7 +386,6 @@ const styles = StyleSheet.create({
   hearing: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   meta: { fontFamily: Font.regular, fontSize: 14, lineHeight: 20, color: Color.meta },
   menu: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  menuChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: Color.control },
   menuText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginTop: 12, paddingLeft: 14, paddingRight: 6, borderRadius: 12, backgroundColor: Color.control, borderWidth: 1.5, borderColor: 'transparent' },
   linkInput: { flex: 1, minWidth: 0, fontFamily: Font.regular, fontSize: 15, color: Color.white },

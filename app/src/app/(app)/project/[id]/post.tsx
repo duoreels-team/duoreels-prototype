@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/brand/bits';
+import { BigButton, Chip } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
@@ -177,14 +177,14 @@ export default function PostScreen() {
                 style={styles.tagsInput}
               />
               <View style={styles.chipRow}>
-                <Pressable accessibilityRole="button" onPress={aiWrite} disabled={busy !== null} style={styles.chip}>
+                <Chip height={30} disabled={busy !== null} onPress={aiWrite} accessibilityLabel="AI write">
                   {busy === 'write' ? <ActivityIndicator size="small" color={Color.violet} /> : <Icon name="spark" size={14} color={Color.violet} />}
                   <Text style={styles.chipText}>AI write</Text>
-                </Pressable>
-                <Pressable accessibilityRole="button" onPress={translate} disabled={busy !== null} style={styles.chip}>
+                </Chip>
+                <Chip height={30} disabled={busy !== null} onPress={translate} accessibilityLabel="Translate">
                   {busy === 'translate' && <ActivityIndicator size="small" color={Color.violet} />}
                   <Text style={styles.chipText}>Translate</Text>
-                </Pressable>
+                </Chip>
               </View>
             </View>
           </View>
@@ -272,7 +272,6 @@ const styles = StyleSheet.create({
   tagsInput: { height: 36, paddingHorizontal: 10, borderRadius: 8, backgroundColor: Color.control, fontFamily: Font.regular, fontSize: 15, color: Color.violet },
   meta: { fontFamily: Font.regular, fontSize: 14, lineHeight: 20, color: Color.meta },
   chipRow: { flexDirection: 'row', gap: 6 },
-  chip: { height: 30, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42' },
   chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   appBtn: { alignItems: 'center', gap: 6 },
   apt: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

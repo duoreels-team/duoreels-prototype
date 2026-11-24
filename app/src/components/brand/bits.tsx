@@ -5,7 +5,7 @@
 import { Image } from 'expo-image';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgGradient, Polygon, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgGradient, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
@@ -70,6 +70,75 @@ export function Tag({ label, tone, height = 20, style }: { label: string; tone: 
   );
 }
 
+/* ---------- chip (.chip): slanted outline, same angle as Tag ---------- */
+
+/**
+ * The prototype's .chip: a parallelogram (top edge shifted right) with a 1 pt grey
+ * outline that follows the slanted sides; selected = filled white with black text.
+ * Same lean as <Tag> (9 pt across for every 24 pt of height). 32 pt high, Geist 14.
+ */
+export function Chip({
+  label,
+  icon,
+  iconSize = 16,
+  on = false,
+  onPress,
+  height = 32,
+  width,
+  disabled,
+  accessibilityLabel,
+  style,
+  children,
+}: {
+  label?: string;
+  icon?: IconName;
+  iconSize?: number;
+  on?: boolean;
+  onPress?: () => void;
+  height?: number;
+  width?: number;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+}) {
+  const [w, setW] = useState(width ?? 0);
+  const slant = height * SLANT_PER_PT;
+  const fg = on ? Color.black : Color.white;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ selected: on, disabled: !!disabled }}
+      disabled={disabled || !onPress}
+      onPress={onPress}
+      hitSlop={{ top: Math.max(0, (44 - height) / 2), bottom: Math.max(0, (44 - height) / 2) }}
+      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}
+      style={({ pressed }) => [styles.chip, { height, paddingHorizontal: Math.round(slant + 6) }, width !== undefined && { width, paddingHorizontal: 0 }, pressed && { opacity: 0.7 }, style]}>
+      {w > 0 && (
+        <Svg width={w} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Polygon
+            points={`${slant + 0.5},0.5 ${w - 0.5},0.5 ${w - slant - 0.5},${height - 0.5} 0.5,${height - 0.5}`}
+            fill={on ? Color.white : 'none'}
+            stroke={on ? Color.white : '#3A3A42'}
+            strokeWidth={1}
+          />
+        </Svg>
+      )}
+      {/* One row on top of the outline, so icons stay visible on a white (selected) chip. */}
+      <View style={styles.chipRow}>
+        {icon && <Icon name={icon} size={iconSize} color={fg} />}
+        {label !== undefined && (
+          <Text style={[styles.chipText, { color: fg }]} numberOfLines={1}>
+            {label}
+          </Text>
+        )}
+        {children}
+      </View>
+    </Pressable>
+  );
+}
+
 /* ---------- avatar: coloured circle with the initial ---------- */
 
 export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
@@ -87,9 +156,21 @@ export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
         {/* 13 is our smallest size, so the letter never goes below it. The 14 px dots in
             top bars have no letter, like the prototype (.topbar .av { font-size: 0 }). */}
         {size > 14 && !photo && (
-          <Text style={[styles.avatarText, { fontSize: letterSize(size), lineHeight: letterSize(size) }]} allowFontScaling={false}>
-            {letter}
-          </Text>
+          // Drawn with SVG so the letter sits exactly in the middle of the circle at every
+          // size (Text boxes add font padding that pushes it off-centre on iOS).
+          <Svg width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <SvgText
+              x="50%"
+              y="50%"
+              dy={letterSize(size) * 0.04}
+              textAnchor="middle"
+              alignmentBaseline="central"
+              fontFamily={Font.bold}
+              fontSize={letterSize(size)}
+              fill={Color.black}>
+              {letter}
+            </SvgText>
+          </Svg>
         )}
       </View>
     </View>
@@ -268,6 +349,20 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     justifyContent: 'center',
   },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  chipText: {
+    flexShrink: 1,
+    fontFamily: Font.semibold,
+    fontSize: 14,
+    lineHeight: 18,
+  },
   tagText: {
     fontFamily: Font.display,
     fontSize: 14,
@@ -288,13 +383,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Centred exactly: line box = font size, no extra font padding (Android), centred by flex.
-  avatarText: {
-    fontFamily: Font.bold,
-    color: Color.black,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  },
   avatarStack: {
     flexDirection: 'row',
   },

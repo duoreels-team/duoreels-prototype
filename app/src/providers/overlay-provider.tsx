@@ -3,8 +3,8 @@
  * They sit above every screen (and the tab bar).
  */
 import { BlurView } from 'expo-blur';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren, type ReactNode, type RefObject } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View, type HostInstance, type ScrollViewInstance } from 'react-native';
 import Animated, { Easing, FadeIn, Keyframe, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +21,8 @@ type OverlayValue = {
   toast: (text: string, undo?: () => void, icon?: boolean) => void;
   /** Top banner (prototype #banner): slides down, tap it to open what it's about. */
   banner: (content: ReactNode, onTap: () => void) => void;
+  /** Scroll the open sheet so this row sits near its top. */
+  scrollSheetTo: (target: HostInstance | null) => void;
 };
 
 const OverlayContext = createContext<OverlayValue | null>(null);
@@ -39,6 +41,8 @@ export function OverlayProvider({ children }: PropsWithChildren) {
   const [bannerItem, setBannerItem] = useState<{ id: number; content: ReactNode; onTap: () => void } | null>(null);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetScroll = useRef<ScrollViewInstance>(null);
+  const sheetOffset = useRef(0);
 
   const openSheet = useCallback((content: ReactNode) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -73,12 +77,23 @@ export function OverlayProvider({ children }: PropsWithChildren) {
     return () => sub.remove();
   }, [sheetOpen, closeSheet]);
 
-  const value = useMemo(() => ({ openSheet, closeSheet, toast, banner }), [openSheet, closeSheet, toast, banner]);
+  const scrollSheetTo = useCallback((target: HostInstance | null) => {
+    const sv = sheetScroll.current;
+    if (!target || !sv) return;
+    // Both are inside the sliding panel, so the gap between them is right even mid-slide.
+    target.measureInWindow((_x, y) => {
+      sv.measureInWindow((_sx, sy) => {
+        sv.scrollTo({ y: Math.max(0, sheetOffset.current + y - sy - 24), animated: true });
+      });
+    });
+  }, []);
+
+  const value = useMemo(() => ({ openSheet, closeSheet, toast, banner, scrollSheetTo }), [openSheet, closeSheet, toast, banner, scrollSheetTo]);
 
   return (
     <OverlayContext.Provider value={value}>
       {children}
-      <SheetHost open={sheetOpen} onClose={closeSheet}>
+      <SheetHost open={sheetOpen} onClose={closeSheet} scrollRef={sheetScroll} onOffset={(y) => (sheetOffset.current = y)}>
         {sheet}
       </SheetHost>
       {bannerItem && (
@@ -105,7 +120,13 @@ export function OverlayProvider({ children }: PropsWithChildren) {
   );
 }
 
-function SheetHost({ open, onClose, children }: PropsWithChildren<{ open: boolean; onClose: () => void }>) {
+function SheetHost({
+  open,
+  onClose,
+  scrollRef,
+  onOffset,
+  children,
+}: PropsWithChildren<{ open: boolean; onClose: () => void; scrollRef: RefObject<ScrollViewInstance | null>; onOffset: (y: number) => void }>) {
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
   const keyboard = useAnimatedKeyboard();
@@ -130,7 +151,14 @@ function SheetHost({ open, onClose, children }: PropsWithChildren<{ open: boolea
         onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
         style={[styles.sheet, { paddingBottom: Math.max(30, insets.bottom + 8), maxHeight: '88%' }, panel]}>
         <View style={styles.grab} />
-        <ScrollView style={styles.sbody} contentContainerStyle={styles.sbodyContent} bounces={false} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          onScroll={(e) => onOffset(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+          style={styles.sbody}
+          contentContainerStyle={styles.sbodyContent}
+          bounces={false}
+          keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
       </Animated.View>

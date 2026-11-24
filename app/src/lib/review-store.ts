@@ -119,5 +119,5 @@ export function sentNotes(d: ReviewData) {
 export function pins(d: ReviewData) {
   const cur = currentVersion(d);
   if (!cur) return [];
-  return d.notes.filter((n) => n.version_id === cur.id && (n.by_key === 'M' || n.kind === 'pin')).map((n) => ({ t: n.time_seconds, by: n.by_key }));
+  return d.notes.filter((n) => n.version_id === cur.id && (n.by_key === 'M' || n.kind === 'pin')).map((n) => ({ id: n.id, t: n.time_seconds, by: n.by_key }));
 }

@@ -43,6 +43,8 @@ export type Profile = {
   onboarded_at: string | null;
   // From 009 (optional until it has been run).
   city?: string | null;
+  /** Your own project types ("+ New type"), 011. */
+  my_types?: string[];
   bio?: string | null;
   plan?: 'free' | 'vip' | 'svip';
   trial_ends_at?: string | null;

@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BigButton, Tag } from '@/components/brand/bits';
+import { BigButton, Chip, Tag } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
@@ -54,11 +54,7 @@ function GCard({ p }: { p: Project }) {
 function FilterSheet({ projects, value, onShow }: { projects: Project[]; value: Filter; onShow: (f: Filter) => void }) {
   const [f, setF] = useState(value);
   const n = filtered(projects, f).length;
-  const chip = (on: boolean, label: string, onPress: () => void) => (
-    <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={[styles.chip, on && styles.chipOn]}>
-      <Text style={[styles.chipText, on && { color: Color.black }]}>{label}</Text>
-    </Pressable>
-  );
+  const chip = (on: boolean, label: string, onPress: () => void) => <Chip key={label} label={label} on={on} onPress={onPress} />;
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 4 }}>
@@ -125,9 +121,7 @@ export default function AllProjectsScreen() {
             <Text style={styles.lab}>
               {gb(storage.total)} of {PLANS[plan].gbLabel}
             </Text>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/plan')} style={styles.more}>
-              <Text style={[styles.chipText, { color: Color.black }]}>More space</Text>
-            </Pressable>
+            <Chip label="More space" on height={28} onPress={() => router.push('/plan')} />
           </View>
           <View style={styles.bar}>
             <View style={[styles.barFill, { width: `${Math.max(storage.total ? 1 : 0, Math.min(100, (storage.total / (PLANS[plan].gb * 1e9)) * 100))}%` }]} />
@@ -144,8 +138,11 @@ export default function AllProjectsScreen() {
           <Text style={styles.lab}>
             {list.length} projects · {f.sort}
           </Text>
-          <Pressable
-            accessibilityRole="button"
+          <Chip
+            icon="filter"
+            label={`Filter${active.length ? ` · ${active.length}` : ''}`}
+            on={active.length > 0}
+            height={30}
             onPress={() =>
               openSheet(
                 <FilterSheet
@@ -158,18 +155,14 @@ export default function AllProjectsScreen() {
                 />,
               )
             }
-            style={[styles.chip, { height: 30, flexDirection: 'row', gap: 4, alignItems: 'center' }, active.length > 0 && styles.chipOn]}>
-            <Icon name="filter" size={16} color={active.length ? Color.black : Color.white} />
-            <Text style={[styles.chipText, active.length > 0 && { color: Color.black }]}>Filter{active.length ? ` · ${active.length}` : ''}</Text>
-          </Pressable>
+          />
         </View>
         {active.length > 0 && (
           <View style={[styles.chips, { marginTop: -2, marginBottom: 14 }]}>
             {active.map((a) => (
-              <Pressable key={a} accessibilityRole="button" onPress={() => setF({ status: 'all', types: [], sort: 'Newest' })} style={[styles.chip, { height: 28, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                <Text style={styles.chipText}>{a}</Text>
+              <Chip key={a} label={a} height={28} accessibilityLabel={`Remove ${a}`} onPress={() => setF({ status: 'all', types: [], sort: 'Newest' })}>
                 <Icon name="close" size={13} strokeWidth={2} />
-              </Pressable>
+              </Chip>
             ))}
           </View>
         )}
@@ -201,9 +194,6 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, minWidth: 0, fontFamily: Font.regular, fontSize: 15, color: Color.white },
   sec: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 32, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42', justifyContent: 'center' },
-  chipOn: { backgroundColor: Color.white, borderColor: Color.white },
-  chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   seg: { flexDirection: 'row', backgroundColor: '#141416', borderRadius: 8, padding: 3, gap: 3 },
   segBtn: { flex: 1, height: 30, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: Color.white },

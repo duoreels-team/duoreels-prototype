@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BigButton } from '@/components/brand/bits';
+import { BigButton, Chip } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { CATEGORIES, filterEditors, PRICES, type Editor, type Sort } from '@/lib/market';
@@ -45,19 +45,12 @@ export function ReelTile({ img, dur, width, onPress }: { img: string; dur?: stri
   );
 }
 
-export function MarketFilterSheet({ editors, q, value, sort, onShow }: { editors: Editor[]; q: string; value: string[]; sort: Sort; onShow: (chips: string[], sort: Sort) => void }) {
+export function MarketFilterSheet({ editors, q, value, sort, myTypes = [], onShow }: { editors: Editor[]; q: string; value: string[]; sort: Sort; myTypes?: string[]; onShow: (chips: string[], sort: Sort) => void }) {
   const [mf, setMf] = useState(value);
   const [s, setS] = useState<Sort>(sort);
   const n = filterEditors(editors, q, mf, s).length;
   const tog = (v: string) => setMf((m) => (m.includes(v) ? m.filter((x) => x !== v) : [...m, v]));
-  const chip = (v: string) => {
-    const on = mf.includes(v);
-    return (
-      <Pressable key={v} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => tog(v)} style={[styles.chip, on && styles.chipOn]}>
-        <Text style={[styles.chipText, on && { color: Color.black }]}>{v}</Text>
-      </Pressable>
-    );
-  };
+  const chip = (v: string) => <Chip key={v} label={v} on={mf.includes(v)} onPress={() => tog(v)} />;
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 6 }}>
@@ -67,7 +60,7 @@ export function MarketFilterSheet({ editors, q, value, sort, onShow }: { editors
         </Pressable>
       </View>
       <Text style={styles.lbl}>CATEGORY</Text>
-      <View style={styles.chips}>{CATEGORIES.map(chip)}</View>
+      <View style={styles.chips}>{[...CATEGORIES, ...myTypes.filter((t) => !CATEGORIES.includes(t))].map(chip)}</View>
       <Text style={styles.lbl}>PRICE PER VIDEO</Text>
       <View style={styles.chips}>{PRICES.map(chip)}</View>
       <Text style={styles.lbl}>SORT</Text>
@@ -93,9 +86,6 @@ const styles = StyleSheet.create({
   lab: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 20, color: Color.white },
   lbl: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 20, letterSpacing: 1.4, color: Color.meta, marginTop: 20, marginBottom: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 32, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42', justifyContent: 'center' },
-  chipOn: { backgroundColor: Color.white, borderColor: Color.white },
-  chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   seg: { flexDirection: 'row', backgroundColor: '#141416', borderRadius: 8, padding: 3, gap: 3 },
   segBtn: { flex: 1, height: 30, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: Color.white },

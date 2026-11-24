@@ -3,9 +3,9 @@
  * Same sheet style as "Who edits?".
  */
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { BigButton } from '@/components/brand/bits';
+import { BigButton, Chip } from '@/components/brand/bits';
 import { DateTimeField } from '@/components/new-project/date-time-field';
 import { Color, Font } from '@/constants/brand';
 import { firstCutLabel } from '@/lib/dates';
@@ -99,19 +99,14 @@ export function PaymentSheet({ price, initial, onDone }: { price: number; initia
         {SPLITS.map((s) => {
           const on = up === s.up;
           return (
-            <Pressable
+            <Chip
               key={s.up}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
+              label={`${s.up} / ${100 - s.up}`}
+              on={on}
               accessibilityLabel={`${s.up} up front, ${100 - s.up} on approval${s.suggested ? ', suggested' : ''}`}
-              onPress={() => setText(String(s.up))}
-              hitSlop={{ top: 6, bottom: 6 }}
-              style={[styles.chip, on && styles.chipOn]}>
-              <Text style={[styles.chipText, on && { color: Color.black }]}>
-                {s.up} / {100 - s.up}
-              </Text>
+              onPress={() => setText(String(s.up))}>
               {s.suggested && <Text style={[styles.chipNote, on && { color: Color.black }]}>Suggested</Text>}
-            </Pressable>
+            </Chip>
           );
         })}
       </View>

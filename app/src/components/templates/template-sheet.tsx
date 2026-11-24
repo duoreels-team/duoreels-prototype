@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { BigButton } from '@/components/brand/bits';
+import { BigButton, Chip } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { saveTemplate, type Template } from '@/lib/templates';
@@ -50,9 +50,7 @@ export function TemplateSheet({ template, onSaved, onDelete }: { template?: Temp
       <Text style={styles.lbl}>TYPE</Text>
       <View style={styles.chips}>
         {TYPES.map((t) => (
-          <Pressable key={t} accessibilityRole="button" accessibilityState={{ selected: type === t }} onPress={() => setType(t)} style={[styles.chip, type === t && styles.chipOn]}>
-            <Text style={[styles.chipText, type === t && { color: Color.black }]}>{t}</Text>
-          </Pressable>
+          <Chip key={t} label={t} on={type === t} onPress={() => setType(t)} />
         ))}
       </View>
       <Text style={styles.lbl}>THE BRIEF</Text>
@@ -115,9 +113,6 @@ const styles = StyleSheet.create({
   field: { height: 48, paddingHorizontal: 14, borderRadius: 12, backgroundColor: Color.control, fontFamily: Font.regular, fontSize: 15, color: Color.white },
   area: { height: undefined, minHeight: 92, paddingTop: 13, paddingBottom: 13, lineHeight: 22, textAlignVertical: 'top' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 32, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42', justifyContent: 'center' },
-  chipOn: { backgroundColor: Color.white, borderColor: Color.white },
-  chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   list: { backgroundColor: Color.control, borderRadius: 12, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   rowLine: { borderTopWidth: 1, borderTopColor: '#2A2A2E' },

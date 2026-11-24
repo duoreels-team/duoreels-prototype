@@ -2,7 +2,6 @@
  * Editor view · Join (prototype V.join): "<creator> invited you", the brief,
  * references, terms, then Accept / Suggest changes / Decline.
  */
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -11,13 +10,12 @@ import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, BigButton } from '@/components/brand/bits';
-import { Icon } from '@/components/brand/icons';
 import { PageTop } from '@/components/brand/top-bar';
+import { FootageSection, ReferencesSection } from '@/components/project/files';
 import { Color, Font, Space } from '@/constants/brand';
-import { addDays, editorFull, fmt } from '@/lib/review';
+import { addDays, editorFull } from '@/lib/review';
 import { firstCutLabel } from '@/lib/dates';
 import { weekday } from '@/lib/projects';
-import { useSignedUrl } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 import { useOverlay } from '@/providers/overlay-provider';
@@ -29,22 +27,6 @@ const slide = new Keyframe({
 }).duration(550);
 
 type Invite = { id: string; project_id: string; editor_key: string };
-type Ref = { id: string; title: string | null; file_path: string | null; mime_type: string | null; duration_seconds: number | null };
-
-function RefTile({ r }: { r: Ref }) {
-  const url = useSignedUrl(r.mime_type?.startsWith('image/') ? r.file_path : null);
-  return (
-    <View style={styles.reel}>
-      {url ? <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={styles.reelIcon}><Icon name="video" size={20} color={Color.text2} /></View>}
-      {r.duration_seconds ? (
-        <View style={styles.dur}>
-          <Text style={styles.durText}>{fmt(Number(r.duration_seconds))}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 function SuggestSheet({ price, due, me, onSend }: { price: number; due: string | null; me: string; onSend: (text: string) => void }) {
   const [why, setWhy] = useState('');
   return (
@@ -86,7 +68,6 @@ export default function JoinScreen() {
   const { refreshProject } = useProjects();
   const { openSheet, closeSheet, toast } = useOverlay();
   const [invite, setInvite] = useState<Invite | null>(null);
-  const [refs, setRefs] = useState<Ref[]>([]);
   const [busy, setBusy] = useState(false);
   const p = useProject(invite?.project_id);
   const me = profile?.name || 'Your creator';
@@ -97,17 +78,7 @@ export default function JoinScreen() {
       .select('id, project_id, editor_key')
       .eq('id', inviteId)
       .maybeSingle()
-      .then(({ data }) => {
-        setInvite(data as Invite | null);
-        if (data) {
-          supabase
-            .from('footage')
-            .select('id, title, file_path, mime_type, duration_seconds')
-            .eq('project_id', (data as Invite).project_id)
-            .eq('kind', 'reference')
-            .then(({ data: r }) => setRefs((r as Ref[]) ?? []));
-        }
-      });
+      .then(({ data }) => setInvite(data as Invite | null));
   }, [inviteId]);
 
   if (!invite || !p) {
@@ -166,16 +137,12 @@ export default function JoinScreen() {
           <Text style={styles.t15}>{p.brief || 'No brief yet. Ask in a message.'}</Text>
         </View>
 
+        {/* Same sections as project details: tap to watch, links open in the browser. */}
         <Text style={styles.lbl}>REFERENCES</Text>
-        {refs.length ? (
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            {refs.map((r) => (
-              <RefTile key={r.id} r={r} />
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.meta}>No references.</Text>
-        )}
+        <ReferencesSection projectId={p.id} />
+
+        <Text style={styles.lbl}>FOOTAGE</Text>
+        <FootageSection projectId={p.id} />
 
         <Text style={styles.lbl}>TERMS</Text>
         <View style={styles.card}>
@@ -235,9 +202,5 @@ const styles = StyleSheet.create({
   listCard: { borderRadius: 12, backgroundColor: Color.control, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   rowLine: { borderTopWidth: 1, borderTopColor: '#2A2A2E' },
-  reel: { width: 96, aspectRatio: 9 / 13, borderRadius: 8, overflow: 'hidden', backgroundColor: Color.surface },
-  reelIcon: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  dur: { position: 'absolute', left: 4, bottom: 4, height: 20, paddingHorizontal: 5, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' },
-  durText: { fontFamily: Font.mono, fontSize: 13, lineHeight: 16, color: Color.white },
   area: { minHeight: 80, marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: Color.control, fontFamily: Font.regular, fontSize: 15, lineHeight: 22, color: Color.white, textAlignVertical: 'top' },
 });

@@ -5,6 +5,9 @@ import { OverlayProvider } from '@/providers/overlay-provider';
 import { ProjectsProvider } from '@/providers/projects-provider';
 import { ViewRoleProvider } from '@/providers/view-role';
 
+/** Screens with a timeline, cover strip or range handles: a drag must never pop the screen. */
+const NO_SWIPE_BACK = { gestureEnabled: false, fullScreenGestureEnabled: false } as const;
+
 export default function SignedInLayout() {
   return (
     <ProjectsProvider>
@@ -13,10 +16,10 @@ export default function SignedInLayout() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Color.black } }}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="new-project" />
-          <Stack.Screen name="project/[id]/index" />
-          <Stack.Screen name="project/[id]/final" />
+          <Stack.Screen name="project/[id]/index" options={NO_SWIPE_BACK} />
+          <Stack.Screen name="project/[id]/final" options={NO_SWIPE_BACK} />
           <Stack.Screen name="project/[id]/post" />
-          <Stack.Screen name="project/[id]/cover" />
+          <Stack.Screen name="project/[id]/cover" options={NO_SWIPE_BACK} />
           <Stack.Screen name="project/[id]/brief" />
           <Stack.Screen name="activity" />
           <Stack.Screen name="thread/[k]" />
@@ -32,7 +35,7 @@ export default function SignedInLayout() {
           <Stack.Screen name="templates" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="join/[invite]" />
-          <Stack.Screen name="ed-project/[id]" />
+          <Stack.Screen name="ed-project/[id]" options={NO_SWIPE_BACK} />
           <Stack.Screen name="soon" />
         </Stack>
       </OverlayProvider>

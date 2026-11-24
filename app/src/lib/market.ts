@@ -93,7 +93,8 @@ export type Sort = 'Best match' | 'Cheapest' | 'Top rated';
 
 export function filterEditors(list: Editor[], q: string, chips: string[], sort: Sort) {
   const needle = q.trim().toLowerCase();
-  const cats = chips.filter((c) => CATEGORIES.includes(c));
+  // Any chip that isn't a price is a category, including your own types from "+ New type".
+  const cats = chips.filter((c) => !PRICES.includes(c));
   const prices = chips.filter((c) => PRICES.includes(c));
   let out = list.filter((e) => {
     const hay = `${e.name} ${e.style} ${e.tags.join(' ')}`.toLowerCase();
