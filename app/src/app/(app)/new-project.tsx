@@ -5,14 +5,13 @@
  * upload into "project-files/<project id>/…" right away. "Send invite" turns the
  * draft into a real project; closing with ✕ throws the draft away.
  */
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +19,8 @@ import { Avatar, BigButton, Chip, IconButton } from '@/components/brand/bits';
 import { NewTypeSheet } from '@/components/new-project/new-type-sheet';
 import { Icon } from '@/components/brand/icons';
 import { UploadBar } from '@/components/brand/upload-bar';
+import { RecordingBar } from '@/components/review/attachments';
+import { transcribeClip, useVoiceRecorder } from '@/lib/voice';
 import { InviteSheet, PickEditorSheet, editorFullName } from '@/components/new-project/sheets';
 import { FirstCutSheet, PaymentSheet, paymentLabel } from '@/components/new-project/terms-sheets';
 import { Color, Font, Space } from '@/constants/brand';
@@ -118,14 +119,15 @@ export default function NewProjectScreen() {
   const [refs, setRefs] = useState<Ref[]>([]);
   const [clips, setClips] = useState<Clip[]>([]);
   const [link, setLink] = useState('');
-  const [listening, setListening] = useState(false);
+  const [briefVoice, setBriefVoice] = useState<'idle' | 'hearing' | 'notHeard'>('idle');
   const [sending, setSending] = useState(false);
 
   const draftId = useRef<Promise<string> | null>(null);
   const sent = useRef(false);
   const inviteMade = useRef(false);
   const linkInput = useRef<TextInputInstance>(null);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const mic = useVoiceRecorder();
+  const listening = mic.recording;
 
   const ed = person(editor).name;
   const okFoot = clips.length > 0;
@@ -316,34 +318,36 @@ export default function NewProjectScreen() {
   }
 
   async function voiceBrief() {
+    if (briefVoice === 'hearing') return;
     if (!listening) {
-      const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        toast('Allow the microphone in Settings to speak your brief', undefined, false);
-        return;
-      }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-      setListening(true);
-      toast(`Listening… talk like you would to ${ed}`, undefined, false);
+      setBriefVoice('idle');
+      await mic.start();
       return;
     }
-    // Second tap: stop, keep the recording with the project, then write the brief.
-    setListening(false);
-    await recorder.stop();
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    const uri = recorder.uri;
-    aiBrief();
-    if (!uri) return;
-    try {
-      const pid = await ensureDraft();
-      const path = `${pid}/brief-voice-${Date.now()}.m4a`;
-      await uploadWithProgress({ path, uri, name: 'brief.m4a', mimeType: 'audio/mp4' }).done;
-      await supabase.from('projects').update({ brief_audio_path: path }).eq('id', pid);
-    } catch {
-      toast("Couldn't save your voice brief. Try again.", undefined);
+    // Second tap: stop, keep the recording with the project, turn it into the brief text.
+    const clip = await mic.stop();
+    if (!clip) {
+      setBriefVoice('notHeard');
+      return;
     }
+    setBriefVoice('hearing');
+    let pid: string;
+    try {
+      pid = await ensureDraft();
+    } catch {
+      setBriefVoice('notHeard');
+      return;
+    }
+    const { path, segments } = await transcribeClip(clip.uri, `${pid}/voice`);
+    if (path) await supabase.from('projects').update({ brief_audio_path: path }).eq('id', pid);
+    const said = (segments ?? []).map((x) => x.text.trim()).join(' ').trim();
+    if (!said) {
+      setBriefVoice('notHeard');
+      return;
+    }
+    // Into the brief field, where you can edit it.
+    setBrief((prev) => (prev.trim() ? `${prev.trim()} ${said}` : said));
+    setBriefVoice('idle');
   }
 
   /* ---------- Who edits? (pickEditor / setEd / shareLink) ---------- */
@@ -618,6 +622,26 @@ export default function NewProjectScreen() {
                 <IconButton name="spark" label="Write with AI" size={18} width={34} color={Color.violet} onPress={aiBrief} style={{ height: 34 }} />
               </View>
             </View>
+            {listening && (
+              <View style={{ marginTop: 10 }}>
+                <RecordingBar seconds={mic.seconds} levels={mic.levels} onStop={voiceBrief} />
+              </View>
+            )}
+            {briefVoice === 'hearing' && (
+              <View style={styles.voiceLine}>
+                <ActivityIndicator size="small" color={Color.violet} />
+                <Text style={styles.meta}>Turning your voice into text…</Text>
+              </View>
+            )}
+            {briefVoice === 'notHeard' && !listening && (
+              <Pressable accessibilityRole="button" onPress={voiceBrief} style={styles.voiceLine}>
+                <Icon name="mic" size={16} color={Color.meta} />
+                <Text style={styles.meta}>
+                  Couldn&apos;t hear anything · <Text style={{ color: Color.violet }}>Try again</Text>
+                </Text>
+              </Pressable>
+            )}
+            {mic.micSheet}
 
             {/* NEW · fill the brief from one of your saved templates */}
             <Pressable accessibilityRole="button" onPress={useTemplate} style={({ pressed }) => [styles.templateRow, pressed && styles.rowPressed]}>
@@ -692,6 +716,7 @@ function Stepper({ icon, label, onPress }: { icon: 'plus' | 'minus'; label: stri
 }
 
 const styles = StyleSheet.create({
+  voiceLine: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, marginTop: 6 },
   screen: {
     flex: 1,
     backgroundColor: Color.black,

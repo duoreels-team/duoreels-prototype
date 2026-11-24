@@ -6,12 +6,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Ellipse, Path } from 'react-native-svg';
 
 import { Avatar } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
+import { LiveWave } from '@/lib/voice';
 
 const ease = Easing.bezier(0.2, 0.8, 0.2, 1);
 export const barIn = FadeInDown.duration(250).easing(ease).withInitialValues({ opacity: 0, transform: [{ translateY: 20 }] });
@@ -76,16 +77,8 @@ export function DButton({ label, onPress, tone = 'violet', icon }: { label: stri
 
 /* ---------- voice bar (.voicebar.f) ---------- */
 
-function WaveBar({ delay }: { delay: number }) {
-  const h = useSharedValue(5);
-  useEffect(() => {
-    h.value = withDelay(delay, withRepeat(withSequence(withTiming(26, { duration: 500 }), withTiming(5, { duration: 500 })), -1));
-  }, [delay, h]);
-  const style = useAnimatedStyle(() => ({ height: h.value }));
-  return <Animated.View style={[styles.waveBar, style]} />;
-}
 
-export function VoiceBar({ editorName, seconds, onDone }: { editorName: string; seconds: number; onDone: () => void }) {
+export function VoiceBar({ editorName, seconds, levels, onDone }: { editorName: string; seconds: number; levels: number[]; onDone: () => void }) {
   const pulse = useSharedValue(0);
   useEffect(() => {
     pulse.value = withRepeat(withSequence(withTiming(1, { duration: 700 }), withTiming(0, { duration: 700 })), -1);
@@ -104,10 +97,9 @@ export function VoiceBar({ editorName, seconds, onDone }: { editorName: string; 
           Listening · {m}:{String(seconds % 60).padStart(2, '0')}
         </Text>
       </View>
+      {/* Real levels from the mic. */}
       <View style={styles.wave}>
-        {Array.from({ length: 14 }, (_, i) => (
-          <WaveBar key={i} delay={(i * 73) % 600} />
-        ))}
+        <LiveWave levels={levels} bars={14} height={20} />
       </View>
       <Pressable accessibilityRole="button" onPress={onDone} style={({ pressed }) => [styles.card, pressed && { backgroundColor: Color.white }]}>
         {({ pressed }) => <Text style={[styles.cardText, pressed && { color: Color.black }]}>DONE</Text>}

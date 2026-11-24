@@ -3,7 +3,6 @@
  * Top bar, video, time row, strip, decision bar (#decide) and tool bar all follow
  * the project's state, exactly like the prototype's V.review + drawBottom().
  */
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { Image, type ImageSource } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -30,21 +29,12 @@ import { approve as saveApprove } from '@/lib/flow';
 import { dotDate, editorName, weekday } from '@/lib/projects';
 import { addDays, canNote, fmt, fmtRange, money, reviewSubtitle, versionPicture, versionVideoUrl, whoKey, type Note, type Version } from '@/lib/review';
 import { addNote, currentVersion, drafts as draftsOf, loadReview, pins as pinsOf, useReviewData } from '@/lib/review-store';
-import { safeFileName, uploadWithProgress, useSignedUrl } from '@/lib/storage';
-import { supabase } from '@/lib/supabase';
+import { useSignedUrl } from '@/lib/storage';
+import { transcribeClip, useVoiceRecorder } from '@/lib/voice';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
 
 type Mode = null | 'voice' | 'voiceWorking' | 'voiceDone' | 'voiceFail' | 'range' | 'draw';
-
-type Segment = { start: number; end: number; text: string };
-
-/** Video time at a moment of the recording, from the samples taken while you talked. */
-function videoTimeAt(track: [number, number][], sec: number, fallback: number) {
-  let best = track[0];
-  for (const s of track) if (s[0] <= sec) best = s;
-  return best ? best[1] + Math.max(0, sec - best[0]) : fallback;
-}
 
 function useVersionMedia(v: Version | null) {
   const [picture, setPicture] = useState<ImageSource | null>(null);
@@ -79,7 +69,7 @@ export default function ReviewScreen() {
   const { openSheet, closeSheet, toast } = useOverlay();
   const demo = useDemo();
   const { askYes, askNo } = useAskActions(id);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const voice = useVoiceRecorder();
 
   const cur = currentVersion(data);
   const prev = data.versions.length > 1 ? data.versions[data.versions.length - 2] : null;
@@ -113,9 +103,8 @@ export default function ReviewScreen() {
   const [cd, setCd] = useState(10);
   const [voiceSecs, setVoiceSecs] = useState(0);
   const [voiceCount, setVoiceCount] = useState(0);
-  // While you talk: [seconds into the recording, video time] every 250 ms.
-  const voiceTrack = useRef<[number, number][]>([]);
-  const voiceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Video time when you started talking: each part is pinned at this + where it starts in the clip.
+  const voiceStartT = useRef(0);
   const tNow = useRef(t);
   useEffect(() => {
     tNow.current = t;
@@ -308,58 +297,33 @@ export default function ReviewScreen() {
 
   async function startVoice() {
     if (!project || !cur) return;
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      toast('Allow the microphone in Settings to talk to your editor', undefined, false);
-      return;
-    }
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
+    voiceStartT.current = tNow.current;
+    if (!(await voice.start())) return;
     setMode('voice');
-    setVoiceSecs(0);
     setVoiceCount(0);
+    // The video keeps playing while you talk.
     if (!clock.playing) playpause();
-    const started = Date.now();
-    voiceTrack.current = [[0, tNow.current]];
-    let ticks = 0;
-    voiceTimer.current = setInterval(() => {
-      voiceTrack.current.push([(Date.now() - started) / 1000, tNow.current]);
-      ticks += 1;
-      if (ticks % 4 === 0) setVoiceSecs(Math.round((Date.now() - started) / 1000));
-    }, 250);
   }
 
   /** Done: upload the recording, transcribe it on the server, pin each part where you said it. */
   async function stopVoice() {
-    if (voiceTimer.current) clearInterval(voiceTimer.current);
     pause();
     setMode('voiceWorking');
-    await recorder.stop();
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    const uri = recorder.uri;
-    if (!uri || !cur) {
+    const clip = await voice.stop();
+    if (!clip || !cur) {
       setMode('voiceFail');
       return;
     }
-    let path: string;
-    try {
-      path = `${id}/voice/${Date.now()}-${safeFileName('voice.m4a')}`;
-      await uploadWithProgress({ path, uri, name: 'voice.m4a', mimeType: 'audio/mp4' }).done;
-    } catch {
-      setMode('voiceFail');
-      return;
-    }
-    // The recording stays in Storage even if nothing is heard.
-    const { data, error } = await supabase.functions.invoke<{ segments: Segment[] }>('transcribe', { body: { path } });
-    const segments = (data?.segments ?? []).filter((x) => x.text.trim());
-    if (error || !segments.length) {
+    setVoiceSecs(clip.seconds);
+    // The recording stays in Storage even if nothing is heard; no notes are made then.
+    const { path, segments } = await transcribeClip(clip.uri, `${id}/voice`);
+    if (!path || !segments?.length) {
       setMode('voiceFail');
       return;
     }
     let made = 0;
     for (const seg of segments) {
-      const at = Math.min(Math.max(0, dur - 0.5), Math.max(0, videoTimeAt(voiceTrack.current, seg.start, tNow.current)));
+      const at = Math.min(Math.max(0, dur - 0.5), Math.max(0, voiceStartT.current + seg.start));
       const note = await addNote(id, { version_id: cur.id, time_seconds: Math.round(at * 10) / 10, body: seg.text.trim(), kind: 'voice', audio_path: path });
       if (note) made += 1;
     }
@@ -474,16 +438,16 @@ export default function ReviewScreen() {
   /* ---------- decision bar (drawBottom) ---------- */
 
   let decide: React.ReactNode = null;
-  if (mode === 'voice') decide = <VoiceBar editorName={ed} seconds={voiceSecs} onDone={stopVoice} />;
+  if (mode === 'voice') decide = <VoiceBar editorName={ed} seconds={voice.seconds} levels={voice.levels} onDone={stopVoice} />;
   else if (mode === 'voiceWorking')
     decide = (
-      <DecisionBar icon="mic" title="Listening back…" sub={`Turning ${fmt(voiceSecs)} of talk into notes`}>
+      <DecisionBar icon="mic" title="Turning your voice into notes…" sub={voiceSecs ? `${fmt(voiceSecs)} of talk` : 'One moment'}>
         <ActivityIndicator color={Color.violet} />
       </DecisionBar>
     );
   else if (mode === 'voiceFail')
     decide = (
-      <DecisionBar icon="mic" title="Couldn't hear anything" sub="Your recording is kept" onHide={() => setMode(null)}>
+      <DecisionBar icon="mic" title="Couldn't hear anything" sub="Your recording is kept · Try again" onHide={() => setMode(null)}>
         <DButton label="Try again" onPress={startVoice} />
       </DecisionBar>
     );
@@ -756,6 +720,7 @@ export default function ReviewScreen() {
       )}
 
       {downloading && cur && <DownloadOverlay version={cur} projectName={project.name} onClose={() => setDownloading(false)} onError={(msg) => toast(msg)} />}
+      {voice.micSheet}
     </View>
   );
 }

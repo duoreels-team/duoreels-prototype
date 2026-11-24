@@ -7,7 +7,6 @@
  *  • AI    — tidies what you typed (it never writes a note for you)
  * Everything is uploaded to "project-files/<project id>/notes/…" and saved on the note.
  */
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image, type ImageSource } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,13 +16,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type T
 import { Avatar, Chip } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
 import { AttachedImage, AudioChip, LinkChip, normaliseLink, RecordingBar } from '@/components/review/attachments';
+import { transcribeClip, useVoiceRecorder } from '@/lib/voice';
 import { DrawingOverlay } from '@/components/review/draw-layer';
 import { Color, Font } from '@/constants/brand';
 import { editorName } from '@/lib/projects';
 import { fmt, type Note, type NoteKind } from '@/lib/review';
 import { addNote, currentVersion, updateNotes, useReviewData } from '@/lib/review-store';
 import { safeFileName, uploadWithProgress } from '@/lib/storage';
-import { supabase } from '@/lib/supabase';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject } from '@/providers/projects-provider';
 
@@ -68,7 +67,7 @@ export function NoteSheet({
   const project = useProject(projectId);
   const data = useReviewData(projectId);
   const { closeSheet, toast } = useOverlay();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const mic = useVoiceRecorder();
   const input = useRef<TextInputInstance>(null);
   const linkInput = useRef<TextInputInstance>(null);
 
@@ -81,9 +80,9 @@ export function NoteSheet({
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkText, setLinkText] = useState('');
   const [linkError, setLinkError] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recSecs, setRecSecs] = useState(0);
+  const recording = mic.recording;
   const [hearing, setHearing] = useState(false);
+  const [notHeard, setNotHeard] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const rangeEnd = b ?? edit?.end_seconds ?? null;
@@ -96,12 +95,6 @@ export function NoteSheet({
     return () => clearTimeout(timer);
   }, [draft, drawing]);
 
-  useEffect(() => {
-    if (!recording) return;
-    const timer = setInterval(() => setRecSecs((s) => s + 1), 1000);
-    return () => clearInterval(timer);
-  }, [recording]);
-
   const hasDrawing = !!(draw && (draw.svg || draw.pngUri || draw.path));
   const canSave = !saving && !recording && (text.trim().length > 0 || hasDrawing || !!image || !!voice || !!link);
   const noteKind: NoteKind = hasDrawing ? 'draw' : rangeEnd ? 'range' : edit?.kind && edit.kind !== 'text' ? edit.kind : voice ? 'voice' : image ? 'image' : kind;
@@ -110,39 +103,29 @@ export function NoteSheet({
   /* ---------- voice ---------- */
 
   async function startRecording() {
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      toast('Allow the microphone in Settings to record a voice note', undefined, false);
-      return;
-    }
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await recorder.prepareToRecordAsync();
-    recorder.record();
-    setRecSecs(0);
-    setRecording(true);
+    setNotHeard(false);
+    await mic.start();
   }
 
   async function stopRecording() {
-    setRecording(false);
-    await recorder.stop();
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    const uri = recorder.uri;
-    if (!uri) return;
-    setVoice({ uri, seconds: recSecs });
-    // Upload now so the clip can be transcribed; the text lands in the box for you to edit.
-    try {
-      const path = `${projectId}/notes/${Date.now()}-${safeFileName('voice.m4a')}`;
-      await uploadWithProgress({ path, uri, name: 'voice.m4a', mimeType: 'audio/mp4' }).done;
-      setVoice({ uri, path, seconds: recSecs });
-      setHearing(true);
-      const { data: out, error } = await supabase.functions.invoke<{ text: string }>('transcribe', { body: { path } });
-      setHearing(false);
-      const said = out?.text?.trim();
-      if (!error && said) setText((prev) => (prev.trim() ? `${prev.trim()} ${said}` : said));
-    } catch {
-      setHearing(false);
-      // Kept as a voice clip; it uploads again when you save.
+    const clip = await mic.stop();
+    if (!clip) {
+      setNotHeard(true);
+      return;
     }
+    setVoice({ uri: clip.uri, seconds: clip.seconds });
+    // Upload now and turn it into text; the text lands in this note for you to edit.
+    setHearing(true);
+    const { path, segments } = await transcribeClip(clip.uri, `${projectId}/notes`);
+    setHearing(false);
+    // The clip stays attached either way (it uploads again on save if this upload failed).
+    if (path) setVoice({ uri: clip.uri, path, seconds: clip.seconds });
+    const said = (segments ?? []).map((x) => x.text.trim()).join(' ').trim();
+    if (!said) {
+      setNotHeard(true);
+      return;
+    }
+    setText((prev) => (prev.trim() ? `${prev.trim()} ${said}` : said));
   }
 
   /* ---------- picture ---------- */
@@ -225,7 +208,7 @@ export function NoteSheet({
 
   const tools: [IconName, string, () => void, boolean][] = [
     ['pen', 'Draw on the frame', () => onDraw({ text, image, link, voice }), hasDrawing],
-    ['mic', recording ? 'Stop recording' : 'Record a voice note', () => (recording ? stopRecording() : startRecording()), recording || !!voice],
+    ['mic', recording ? 'Stop recording' : 'Record a voice note', () => (hearing ? undefined : recording ? stopRecording() : startRecording()), recording || !!voice],
     ['image', 'Add a picture', () => setImageMenu((o) => !o), imageMenu || !!image],
     ['link', 'Add a link', toggleLinkBox, linkOpen || !!link],
   ];
@@ -270,7 +253,7 @@ export function NoteSheet({
       </View>
 
       {/* attachments */}
-      {(image || link || voice || hearing) && (
+      {(image || link || voice || hearing || notHeard) && (
         <View style={styles.attachments}>
           {image && <AttachedImage uri={'uri' in image ? image.uri : null} path={'path' in image ? image.path : null} onRemove={() => setImage(null)} />}
           <View style={{ gap: 8, flex: 1, minWidth: 0 }}>
@@ -278,8 +261,16 @@ export function NoteSheet({
             {hearing && (
               <View style={styles.hearing}>
                 <ActivityIndicator size="small" color={Color.violet} />
-                <Text style={styles.meta}>Writing down what you said…</Text>
+                <Text style={styles.meta}>Turning your voice into text…</Text>
               </View>
+            )}
+            {notHeard && !hearing && !recording && (
+              <Pressable accessibilityRole="button" onPress={startRecording} style={styles.hearing}>
+                <Icon name="mic" size={16} color={Color.meta} />
+                <Text style={styles.meta}>
+                  Couldn&apos;t hear anything · <Text style={{ color: Color.violet }}>Try again</Text>
+                </Text>
+              </Pressable>
             )}
             {link && <LinkChip url={link} onRemove={() => setLink(null)} />}
           </View>
@@ -288,9 +279,10 @@ export function NoteSheet({
 
       {recording && (
         <View style={{ marginTop: 12 }}>
-          <RecordingBar seconds={recSecs} onStop={stopRecording} />
+          <RecordingBar seconds={mic.seconds} levels={mic.levels} onStop={stopRecording} />
         </View>
       )}
+      {mic.micSheet}
 
       {imageMenu && (
         <View style={styles.menu}>

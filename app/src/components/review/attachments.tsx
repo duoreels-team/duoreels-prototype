@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/brand/bits';
@@ -15,6 +15,7 @@ import { Icon } from '@/components/brand/icons';
 import { Color, Font } from '@/constants/brand';
 import { fmt } from '@/lib/review';
 import { useSignedUrl } from '@/lib/storage';
+import { LiveWave } from '@/lib/voice';
 
 /** "dribbble.com/x" → "https://dribbble.com/x"; null if it isn't a web link. */
 export function normaliseLink(input: string) {
@@ -129,16 +130,8 @@ export function AudioChip({ uri, path, seconds, onRemove }: { uri?: string | nul
 
 /* ---------- while recording ---------- */
 
-function Bar({ delay }: { delay: number }) {
-  const h = useSharedValue(4);
-  useEffect(() => {
-    h.value = withDelay(delay, withRepeat(withSequence(withTiming(20, { duration: 450 }), withTiming(4, { duration: 450 })), -1));
-  }, [delay, h]);
-  const style = useAnimatedStyle(() => ({ height: h.value }));
-  return <Animated.View style={[styles.waveBar, style]} />;
-}
 
-export function RecordingBar({ seconds, onStop }: { seconds: number; onStop: () => void }) {
+export function RecordingBar({ seconds, levels, onStop }: { seconds: number; levels: number[]; onStop: () => void }) {
   const pulse = useSharedValue(1);
   useEffect(() => {
     pulse.value = withRepeat(withSequence(withTiming(0.35, { duration: 600 }), withTiming(1, { duration: 600 })), -1);
@@ -149,9 +142,7 @@ export function RecordingBar({ seconds, onStop }: { seconds: number; onStop: () 
       <Animated.View style={[styles.recDot, dot]} />
       <Text style={styles.chipMono}>{fmt(seconds)}</Text>
       <View style={styles.wave}>
-        {Array.from({ length: 16 }, (_, i) => (
-          <Bar key={i} delay={(i * 67) % 450} />
-        ))}
+        <LiveWave levels={levels} bars={16} height={20} color={Color.violet} />
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Stop recording" onPress={onStop} style={styles.stop}>
         <View style={styles.stopSquare} />
