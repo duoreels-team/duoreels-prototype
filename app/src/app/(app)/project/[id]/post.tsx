@@ -1,13 +1,16 @@
 /**
- * Post to social (prototype V.post): cover + caption (AI write, Translate),
- * which apps, "Send N drafts". Saves the caption and apps, marks the project posted.
+ * Post to social (prototype V.post), with YOUR words only:
+ * cover (from the project) + title, caption and hashtags you type (empty to start).
+ * "AI write" and "Translate" fill the fields only when you tap them (Edge Function
+ * "write"); everything stays editable and is saved on the project.
+ * The app tiles use the official TikTok / Instagram / YouTube logos.
  */
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/brand/bits';
@@ -16,24 +19,16 @@ import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font, Space } from '@/constants/brand';
 import { logActivity } from '@/lib/flow';
 import { useCover } from '@/lib/projects';
+import { supabase } from '@/lib/supabase';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
 
-const DEFAULT_CAPTION = 'Coffee first, phone later. What does your 5 am look like?\n#morningroutine #5amclub';
-const AI_CAPTION = '5 am, one coffee, zero notifications. Here is how I start slow. ☕';
-const AI_TAGS = '#morningroutine #slowliving';
-const ZH_CAPTION = '早上 5 点，一杯咖啡，零通知。慢慢开始新的一天。☕\n#晨间日常 #慢生活';
-const APPS: [string, string][] = [
-  ['T', 'TikTok'],
-  ['R', 'Reels'],
-  ['S', 'Shorts'],
+// Official brand glyphs (Font Awesome brands), in each platform's own colours.
+const APPS: { key: string; name: string; glyph: 'tiktok' | 'instagram' | 'youtube'; onTile: string; offTile: string }[] = [
+  { key: 'TikTok', name: 'TikTok', glyph: 'tiktok', onTile: '#000000', offTile: '#FFFFFF' },
+  { key: 'Reels', name: 'Reels', glyph: 'instagram', onTile: '#000000', offTile: '#FFFFFF' },
+  { key: 'Shorts', name: 'Shorts', glyph: 'youtube', onTile: '#FF0000', offTile: '#FF0000' },
 ];
-
-function splitCaption(c: string) {
-  const lines = c.split('\n');
-  const tags = lines.length > 1 && lines[lines.length - 1].trim().startsWith('#') ? lines.pop()! : '';
-  return { text: lines.join('\n'), tags };
-}
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,36 +37,65 @@ export default function PostScreen() {
   const { update, refreshProject } = useProjects();
   const { toast } = useOverlay();
   const cover = useCover(p ?? { cover_image: null });
-  const [caption, setCaption] = useState(p?.caption ?? DEFAULT_CAPTION);
+  const [title, setTitle] = useState(p?.cover_title ?? '');
+  const [caption, setCaption] = useState(p?.caption ?? '');
+  const [tags, setTags] = useState(p?.hashtags ?? '');
   const [apps, setApps] = useState<string[]>(p?.post_apps ?? ['TikTok', 'Reels']);
-  const [writing, setWriting] = useState(false);
+  const [busy, setBusy] = useState<'write' | 'translate' | null>(null);
   const [sending, setSending] = useState(false);
-  const shimmer = useSharedValue(1);
-
-  useEffect(() => {
-    shimmer.value = writing ? withRepeat(withSequence(withTiming(0.35, { duration: 450 }), withTiming(1, { duration: 450 })), -1) : withTiming(1);
-  }, [writing, shimmer]);
-  const shimmerStyle = useAnimatedStyle(() => ({ opacity: shimmer.value }));
 
   if (!p) return null;
-  const { text, tags } = splitCaption(caption);
   const n = apps.length;
 
+  const save = (fields: Record<string, unknown>) => update(id, fields);
+
   async function aiWrite() {
-    setWriting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setWriting(false);
-    for (let i = 0; i <= AI_CAPTION.length; i++) {
-      setCaption(AI_CAPTION.slice(0, i));
-      await new Promise((r) => setTimeout(r, 18));
+    if (!p) return;
+    setBusy('write');
+    const { data, error } = await supabase.functions.invoke<{ caption: string; hashtags: string }>('write', {
+      body: { mode: 'caption', name: p.name, type: p.type, brief: p.brief ?? '' },
+    });
+    setBusy(null);
+    if (error || !data?.caption) {
+      toast("AI write isn't set up yet · deploy the write function", undefined, false);
+      return;
     }
-    setCaption(`${AI_CAPTION}\n${AI_TAGS}`);
+    setCaption(data.caption);
+    setTags(data.hashtags);
+    save({ caption: data.caption, hashtags: data.hashtags || null });
+  }
+
+  async function translate() {
+    const text = [caption.trim(), tags.trim()].filter(Boolean).join('\n');
+    if (!text) {
+      toast('Write a caption first', undefined, false);
+      return;
+    }
+    setBusy('translate');
+    const { data, error } = await supabase.functions.invoke<{ text: string }>('write', { body: { mode: 'translate', text, to: 'Simplified Chinese' } });
+    setBusy(null);
+    if (error || !data?.text) {
+      toast("Translate isn't set up yet · deploy the write function", undefined, false);
+      return;
+    }
+    const lines = data.text.split('\n');
+    const last = lines.length > 1 && lines[lines.length - 1].trim().startsWith('#') ? lines.pop()! : '';
+    setCaption(lines.join('\n'));
+    if (last) setTags(last);
+    save({ caption: lines.join('\n'), hashtags: last || tags || null });
   }
 
   async function sendDrafts() {
     if (!p || !n) return;
     setSending(true);
-    const err = await update(id, { caption, post_apps: apps, done_kind: 'posted', posted_at: new Date().toISOString() });
+    const err = await update(id, {
+      cover_title: title.trim() || null,
+      caption: caption.trim() || null,
+      hashtags: tags.trim() || null,
+      post_apps: apps,
+      done_kind: 'posted',
+      posted_at: new Date().toISOString(),
+    });
     if (err) {
       setSending(false);
       toast(err);
@@ -88,70 +112,114 @@ export default function PostScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
       <PageTop title="Post to social" sub="Optional · saves as drafts in each app" />
-      <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: 30 + insets.bottom }]}>
-        <Text style={[styles.lbl, { marginTop: 6 }]}>COVER AND CAPTION</Text>
-        <View style={styles.card}>
-          <View>
-            <View style={styles.thumb}>
-              {cover && <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" />}
-              <Text style={styles.coverTitle} numberOfLines={2}>
-                {p.cover_title ?? 'My 5 am routine'}
-              </Text>
-            </View>
-            <Pressable accessibilityRole="button" onPress={() => router.push(`/project/${id}/cover`)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 6 }}>
-              <Text style={[styles.meta, { color: Color.white }]}>Edit cover</Text>
-            </Pressable>
-          </View>
-          <View style={styles.flex}>
-            <Animated.Text style={[styles.t15, styles.flex, shimmerStyle]}>
-              {text}
-              {tags ? <Text style={{ color: Color.violet }}>{`\n${tags}`}</Text> : null}
-            </Animated.Text>
-            <View style={styles.chipRow}>
-              <Pressable accessibilityRole="button" onPress={aiWrite} disabled={writing} style={styles.chip}>
-                <Icon name="spark" size={14} color={Color.violet} />
-                <Text style={styles.chipText}>AI write</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setCaption(ZH_CAPTION)} style={styles.chip}>
-                <Text style={styles.chipText}>Translate</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: 30 + insets.bottom }]} keyboardShouldPersistTaps="handled">
+          <Text style={[styles.lbl, { marginTop: 6 }]}>COVER AND CAPTION</Text>
+          <View style={styles.card}>
+            <View>
+              <View style={styles.thumb}>
+                {cover && <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" />}
+                {!!title.trim() && (
+                  <Text style={styles.coverTitle} numberOfLines={2}>
+                    {title.trim()}
+                  </Text>
+                )}
+              </View>
+              <Pressable accessibilityRole="button" onPress={() => router.push(`/project/${id}/cover`)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 6 }}>
+                <Text style={[styles.meta, { color: Color.white }]}>Edit cover</Text>
               </Pressable>
             </View>
+            <View style={[styles.flex, { gap: 8 }]}>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                onBlur={() => save({ cover_title: title.trim() || null })}
+                placeholder="Title on the cover"
+                placeholderTextColor={Color.meta}
+                selectionColor={Color.violet}
+                keyboardAppearance="dark"
+                maxLength={60}
+                accessibilityLabel="Title on the cover"
+                style={styles.titleInput}
+              />
+              <TextInput
+                value={caption}
+                onChangeText={setCaption}
+                onBlur={() => save({ caption: caption.trim() || null })}
+                multiline
+                placeholder="Write a caption…"
+                placeholderTextColor={Color.meta}
+                selectionColor={Color.violet}
+                keyboardAppearance="dark"
+                accessibilityLabel="Caption"
+                style={styles.captionInput}
+              />
+              <TextInput
+                value={tags}
+                onChangeText={setTags}
+                onBlur={() => save({ hashtags: tags.trim() || null })}
+                placeholder="#hashtags"
+                placeholderTextColor={Color.meta}
+                autoCapitalize="none"
+                autoCorrect={false}
+                selectionColor={Color.violet}
+                keyboardAppearance="dark"
+                accessibilityLabel="Hashtags"
+                style={styles.tagsInput}
+              />
+              <View style={styles.chipRow}>
+                <Pressable accessibilityRole="button" onPress={aiWrite} disabled={busy !== null} style={styles.chip}>
+                  {busy === 'write' ? <ActivityIndicator size="small" color={Color.violet} /> : <Icon name="spark" size={14} color={Color.violet} />}
+                  <Text style={styles.chipText}>AI write</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={translate} disabled={busy !== null} style={styles.chip}>
+                  {busy === 'translate' && <ActivityIndicator size="small" color={Color.violet} />}
+                  <Text style={styles.chipText}>Translate</Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </View>
 
-        <Text style={styles.lbl}>POST TO</Text>
-        <View style={[styles.card, { gap: 14 }]}>
-          {APPS.map(([k, name]) => {
-            const on = apps.includes(name);
-            return (
-              <Pressable
-                key={k}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: on }}
-                accessibilityLabel={name}
-                onPress={() => setApps((a) => (on ? a.filter((x) => x !== name) : [...a, name]))}
-                style={styles.appBtn}>
-                <View style={[styles.apt, { backgroundColor: on ? Color.white : Color.control }]}>
-                  <Text style={[styles.aptText, { color: on ? Color.black : '#888888' }]}>{k}</Text>
-                </View>
-                <Text style={styles.appName}>{name}</Text>
-              </Pressable>
-            );
-          })}
-          {/* "More" doesn't open anything in the prototype yet. */}
-          <View style={styles.appBtn}>
-            <View style={[styles.apt, styles.aptMore]}>
-              <Icon name="plus" size={20} color={Color.text2} />
+          <Text style={styles.lbl}>POST TO</Text>
+          <View style={[styles.card, { gap: 14 }]}>
+            {APPS.map((a) => {
+              const on = apps.includes(a.key);
+              return (
+                <Pressable
+                  key={a.key}
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={a.name}
+                  onPress={() => {
+                    const next = on ? apps.filter((x) => x !== a.key) : [...apps, a.key];
+                    setApps(next);
+                    save({ post_apps: next });
+                  }}
+                  style={styles.appBtn}>
+                  <View style={[styles.apt, { backgroundColor: on ? Color.white : Color.control }]}>
+                    <View style={{ opacity: on ? 1 : 0.45 }}>
+                      <FontAwesome6 name={a.glyph} brand size={22} color={on ? a.onTile : a.offTile} />
+                    </View>
+                  </View>
+                  <Text style={styles.appName}>{a.name}</Text>
+                </Pressable>
+              );
+            })}
+            {/* "More" doesn't open anything in the prototype yet. */}
+            <View style={styles.appBtn}>
+              <View style={[styles.apt, styles.aptMore]}>
+                <Icon name="plus" size={20} color={Color.text2} />
+              </View>
+              <Text style={[styles.appName, { color: Color.text2 }]}>More</Text>
             </View>
-            <Text style={[styles.appName, { color: Color.text2 }]}>More</Text>
           </View>
-        </View>
 
-        <View style={{ marginTop: 22 }}>
-          <BigButton label={`Send ${n} draft${n === 1 ? '' : 's'}`} disabled={!n} loading={sending} onPress={sendDrafts} />
-        </View>
-        <Text style={[styles.meta, { textAlign: 'center', marginTop: 10 }]}>Goes to each app&apos;s drafts. Add tags, mentions and music there.</Text>
-      </ScrollView>
+          <View style={{ marginTop: 22 }}>
+            <BigButton label={`Send ${n} draft${n === 1 ? '' : 's'}`} disabled={!n} loading={sending} onPress={sendDrafts} />
+          </View>
+          <Text style={[styles.meta, { textAlign: 'center', marginTop: 10 }]}>Goes to each app&apos;s drafts. Add tags, mentions and music there.</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -178,14 +246,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Color.white,
   },
-  t15: { fontFamily: Font.regular, fontSize: 15, lineHeight: 22, color: Color.white },
+  titleInput: { height: 36, paddingHorizontal: 10, borderRadius: 8, backgroundColor: Color.control, fontFamily: Font.semibold, fontSize: 15, color: Color.white },
+  captionInput: {
+    minHeight: 72,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 8,
+    backgroundColor: Color.control,
+    fontFamily: Font.regular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: Color.white,
+    textAlignVertical: 'top',
+  },
+  tagsInput: { height: 36, paddingHorizontal: 10, borderRadius: 8, backgroundColor: Color.control, fontFamily: Font.regular, fontSize: 15, color: Color.violet },
   meta: { fontFamily: Font.regular, fontSize: 14, lineHeight: 20, color: Color.meta },
-  chipRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  chipRow: { flexDirection: 'row', gap: 6 },
   chip: { height: 30, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#3A3A42' },
   chipText: { fontFamily: Font.semibold, fontSize: 14, lineHeight: 18, color: Color.white },
   appBtn: { alignItems: 'center', gap: 6 },
   apt: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   aptMore: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#3A3A42' },
-  aptText: { fontFamily: Font.bold, fontSize: 18, lineHeight: 22 },
   appName: { fontFamily: Font.medium, fontSize: 14, lineHeight: 18, color: Color.white },
 });

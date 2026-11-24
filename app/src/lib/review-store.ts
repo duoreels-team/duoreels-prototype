@@ -49,7 +49,7 @@ export async function loadReview(id: string) {
 /* ---------- notes ---------- */
 
 const NOTE_COLS =
-  'id, version_id, time_seconds, end_seconds, body, kind, status, done, by_key, drawing_svg, audio_path, reply_text, reply_by_key, created_at';
+  'id, version_id, time_seconds, end_seconds, body, kind, status, done, by_key, drawing_svg, drawing_path, audio_path, image_path, link_url, reply_text, reply_by_key, created_at';
 
 export async function addNote(projectId: string, fields: Partial<Note> & { version_id: string; time_seconds: number; body: string }) {
   const { data: user } = await supabase.auth.getUser();

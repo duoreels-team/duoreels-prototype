@@ -161,11 +161,14 @@ export function ToolBar({ enabled, voiceOn, notes, onTool, onNotes }: { enabled:
   );
 }
 
-export function DrawToolBar({ tool, onTool, onUndo }: { tool: 'pen' | 'line' | 'circle'; onTool: (t: 'pen' | 'line' | 'circle') => void; onUndo: () => void }) {
-  const items: ['pen' | 'line' | 'circle', string][] = [
+type DrawKey = 'pen' | 'line' | 'circle' | 'check';
+
+export function DrawToolBar({ tool, onTool, onUndo }: { tool: DrawKey; onTool: (t: DrawKey) => void; onUndo: () => void }) {
+  const items: [DrawKey, string][] = [
     ['pen', 'Pen'],
     ['line', 'Arrow'],
     ['circle', 'Circle'],
+    ['check', 'Tick'],
   ];
   return (
     <View style={styles.tools}>
@@ -176,12 +179,16 @@ export function DrawToolBar({ tool, onTool, onUndo }: { tool: 'pen' | 'line' | '
           <Pressable key={k} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={() => onTool(k)} style={[styles.tl, on && styles.tlOn]}>
             {k === 'pen' ? (
               <Icon name="pen" size={24} strokeWidth={1.6} color={c} />
+            ) : k === 'check' ? (
+              <Icon name="check" size={24} strokeWidth={1.6} color={c} />
             ) : (
               <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.6} strokeLinecap="round">
                 {k === 'circle' ? <Ellipse cx={12} cy={12} rx={8} ry={6.5} /> : <Path d="M5 19 19 5M11 5h8v8" />}
               </Svg>
             )}
-            <Text style={[styles.tlText, on && { color: Color.violet }]}>{label}</Text>
+            <Text style={[styles.tlText, on && { color: Color.violet }]} numberOfLines={1}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}

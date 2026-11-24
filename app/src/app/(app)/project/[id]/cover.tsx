@@ -14,7 +14,6 @@ import { PageTop } from '@/components/brand/top-bar';
 import { Color, Font } from '@/constants/brand';
 import { fmt, versionPicture, versionVideoUrl } from '@/lib/review';
 import { currentVersion, loadReview, useReviewData } from '@/lib/review-store';
-import { SAMPLE_IMAGES } from '@/lib/sample-images';
 import { uploadWithProgress } from '@/lib/storage';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
@@ -34,7 +33,7 @@ export default function CoverScreen() {
   const [orient, setOrient] = useState<'v' | 'h'>('v');
   const [x, setX] = useState(p?.cover_seconds != null ? p.cover_seconds / dur : 0.46);
   const [frame, setFrame] = useState<string | null>(null);
-  const [title, setTitle] = useState(p?.cover_title ?? 'My 5 am routine');
+  const [title, setTitle] = useState(p?.cover_title ?? '');
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [offset, setOffset] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -110,7 +109,7 @@ export default function CoverScreen() {
   )[0];
 
   if (!p) return null;
-  const shown: ImageSource | null = orient === 'h' ? SAMPLE_IMAGES.mk2 : frame ? { uri: frame } : pic;
+  const shown: ImageSource | null = frame ? { uri: frame } : pic;
 
   async function save() {
     if (!p) return;
@@ -177,7 +176,7 @@ export default function CoverScreen() {
               source={shown}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
-              contentPosition={frame && orient === 'v' ? 'center' : { left: `${x * 100}%`, top: `${30 + x * 40}%` }}
+              contentPosition={frame ? 'center' : { left: `${x * 100}%`, top: `${30 + x * 40}%` }}
             />
           )}
           {box.w > 0 && (
@@ -195,7 +194,16 @@ export default function CoverScreen() {
                 </>
               )}
               <View {...boxPan.panHandlers} style={[styles.sq, orient === 'v' ? { left: 0, top: pos, width: sq.w, height: sq.h } : { top: 0, left: pos, width: sq.w, height: sq.h }]}>
-                <TextInput value={title} onChangeText={setTitle} style={styles.ctitle} selectionColor={Color.violet} keyboardAppearance="dark" accessibilityLabel="Cover title" />
+                <TextInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Add a title"
+                  placeholderTextColor={Color.meta}
+                  style={styles.ctitle}
+                  selectionColor={Color.violet}
+                  keyboardAppearance="dark"
+                  accessibilityLabel="Cover title"
+                />
               </View>
             </>
           )}

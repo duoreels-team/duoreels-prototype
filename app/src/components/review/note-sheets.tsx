@@ -6,18 +6,21 @@
  */
 import { Image, type ImageSource } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { FadeOut, LinearTransition, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 import { Avatar, BigButton } from '@/components/brand/bits';
 import { Icon, type IconName } from '@/components/brand/icons';
+import { AttachedImage, AudioChip, LinkChip } from '@/components/review/attachments';
 import { DrawingOverlay } from '@/components/review/draw-layer';
 import { Color, Font } from '@/constants/brand';
 import { sendNotes as saveSend, unsendNotes } from '@/lib/flow';
 import { person } from '@/lib/people';
 import { editorName } from '@/lib/projects';
 import { fmt, fmtRange, type Note, type NoteKind } from '@/lib/review';
-import { addNote, currentVersion, deleteNoteLater, drafts as draftsOf, sentNotes, updateNotes, useReviewData, versionNumber } from '@/lib/review-store';
+import { deleteNoteLater, drafts as draftsOf, sentNotes, updateNotes, useReviewData, versionNumber } from '@/lib/review-store';
+import { useSignedUrl } from '@/lib/storage';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
 
@@ -37,138 +40,6 @@ function AttChip({ kind, big }: { kind: NoteKind; big?: boolean }) {
   );
 }
 
-/* ================= NoteSheet ================= */
-
-export function NoteSheet({
-  projectId,
-  t,
-  b,
-  kind = 'text',
-  drawingSvg,
-  audioPath,
-  picture,
-  edit,
-  onSaved,
-}: {
-  projectId: string;
-  t: number;
-  b?: number | null;
-  kind?: NoteKind;
-  drawingSvg?: string | null;
-  audioPath?: string | null;
-  picture: ImageSource | null;
-  edit?: Note;
-  onSaved: (t: number) => void;
-}) {
-  const project = useProject(projectId);
-  const data = useReviewData(projectId);
-  const { closeSheet, toast } = useOverlay();
-  const [text, setText] = useState(edit?.body ?? '');
-  const [saving, setSaving] = useState(false);
-  const input = useRef<TextInputInstance>(null);
-  const ed = project ? editorName(project) : 'your editor';
-  const draw = drawingSvg ?? edit?.drawing_svg ?? null;
-  const rangeEnd = b ?? edit?.end_seconds ?? null;
-  const k = edit?.kind ?? kind;
-
-  useEffect(() => {
-    const timer = setTimeout(() => input.current?.focus(), 350);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // A note is exactly what you type; a drawing can go without words.
-  const canSave = text.trim().length > 0 || !!draw;
-
-  async function save() {
-    if (saving || !canSave) return;
-    const body = text.trim();
-    if (edit) {
-      closeSheet();
-      await updateNotes(projectId, [edit.id], { body });
-      toast('Note saved');
-      return;
-    }
-    const cur = currentVersion(data);
-    if (!cur) return;
-    setSaving(true);
-    const note = await addNote(projectId, {
-      version_id: cur.id,
-      time_seconds: t,
-      end_seconds: rangeEnd,
-      body,
-      kind: k,
-      drawing_svg: draw,
-      audio_path: audioPath ?? null,
-    });
-    setSaving(false);
-    if (!note) {
-      toast("Couldn't save the note · check your connection");
-      return;
-    }
-    closeSheet();
-    onSaved(t);
-  }
-
-  function aiNote() {
-    // Tidies what you typed (capital letter, full stop). It never writes a note for you.
-    if (!text.trim()) return;
-    setText((v) => v.trim().replace(/^./, (c) => c.toUpperCase()).replace(/[.!?]*$/, '.'));
-  }
-
-  const time = edit ? edit.time_seconds : t;
-
-  return (
-    <View>
-      <View style={styles.noteHead}>
-        <Avatar k="M" size={26} />
-        <Text style={[styles.noteHeadText, styles.flex]}>
-          {edit ? 'Edit note · ' : 'Note at '}
-          {fmt(time)}
-          {rangeEnd ? ` – ${fmt(rangeEnd)}` : ''}
-        </Text>
-        {k !== 'text' && <AttChip kind={k} />}
-      </View>
-      <View style={styles.noteRow}>
-        {draw ? (
-          <View style={styles.drawthumb}>
-            {picture && <Image source={picture} style={StyleSheet.absoluteFill} contentFit="cover" />}
-            <DrawingOverlay svg={draw} />
-          </View>
-        ) : (
-          <View style={styles.noteThumb}>{picture && <Image source={picture} style={StyleSheet.absoluteFill} contentFit="cover" />}</View>
-        )}
-        <TextInput
-          ref={input}
-          value={text}
-          onChangeText={setText}
-          multiline
-          placeholder={draw ? 'Say what the drawing means…' : rangeEnd ? 'What should change in this part?' : 'What should change here?'}
-          placeholderTextColor={Color.meta}
-          selectionColor={Color.violet}
-          keyboardAppearance="dark"
-          style={styles.noteInput}
-        />
-      </View>
-      <View style={styles.noteTools}>
-        {/* In the prototype these three don't do anything yet. */}
-        {(['mic', 'image', 'link'] as IconName[]).map((i) => (
-          <View key={i} style={styles.noteTool}>
-            <Icon name={i} size={20} strokeWidth={1.6} color="#DDDDDD" />
-          </View>
-        ))}
-        <Pressable accessibilityRole="button" accessibilityLabel="Write with AI" onPress={aiNote} style={styles.noteTool}>
-          <Icon name="spark" size={20} color={Color.violet} />
-        </Pressable>
-        <View style={styles.flex} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Add note" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={save} style={({ pressed }) => [styles.sendCircle, !canSave && { opacity: 0.4 }, pressed && { opacity: 0.8 }]}>
-          <Icon name="up" size={22} strokeWidth={2.4} color={Color.black} />
-        </Pressable>
-      </View>
-      <Text style={styles.hint}>The arrow button adds it to your notes. {ed} sees nothing until you press Send.</Text>
-    </View>
-  );
-}
-
 /* ================= NotesSheet ================= */
 
 function Shimmer({ children, on }: { children: string; on: boolean }) {
@@ -181,60 +52,106 @@ function Shimmer({ children, on }: { children: string; on: boolean }) {
 }
 
 function NoteThumb({ picture, n }: { picture: ImageSource | null; n: Note }) {
+  const drawing = useSignedUrl(n.drawing_path);
   return (
     <View style={styles.nt}>
       {picture && <Image source={picture} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={{ left: `${(n.time_seconds * 9) % 100}%`, top: '40%' }} />}
-      {n.kind === 'draw' ? <View style={styles.ringMark} /> : <View style={styles.pdot} />}
+      {drawing ? (
+        <Image source={{ uri: drawing }} style={StyleSheet.absoluteFill} contentFit="fill" />
+      ) : n.drawing_svg ? (
+        <DrawingOverlay svg={n.drawing_svg} />
+      ) : n.kind === 'draw' ? (
+        <View style={styles.ringMark} />
+      ) : (
+        <View style={styles.pdot} />
+      )}
     </View>
   );
 }
 
-function DraftRow({ n, picture, tidying, flyIndex, onEdit, onDelete }: { n: Note; picture: ImageSource | null; tidying: boolean; flyIndex: number | null; onEdit: () => void; onDelete: () => void }) {
-  const x = useSharedValue(0);
+/** The picture, voice clip and link a note carries (tap to open / play). */
+function NoteExtras({ n }: { n: Note }) {
+  if (!n.image_path && !n.audio_path && !n.link_url) return null;
+  return (
+    <View style={styles.extras}>
+      {n.image_path && <AttachedImage path={n.image_path} size={44} />}
+      <View style={{ gap: 6, flexShrink: 1, minWidth: 0 }}>
+        {n.audio_path && <AudioChip path={n.audio_path} />}
+        {n.link_url && <LinkChip url={n.link_url} />}
+      </View>
+    </View>
+  );
+}
+
+/** Swipe left to show Delete (like Mail). Hidden while notes fly out. */
+function DraftRow({
+  n,
+  picture,
+  tidying,
+  flyIndex,
+  register,
+  onEdit,
+  onDelete,
+}: {
+  n: Note;
+  picture: ImageSource | null;
+  tidying: boolean;
+  flyIndex: number | null;
+  register: (id: string, m: SwipeableMethods | null) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const fly = useSharedValue(0);
-  const open = useRef(false);
 
   useEffect(() => {
-    if (flyIndex !== null) fly.value = withDelay(flyIndex * 90, withTiming(1, { duration: 450 }));
+    if (flyIndex !== null) fly.value = withDelay(flyIndex * 90, withTiming(1, { duration: 420 }));
   }, [flyIndex, fly]);
 
-  // eslint-disable-next-line react-hooks/refs -- the handlers read refs only while a finger moves, never during render
-  const pan = useState(() =>
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderMove: (_, g) => {
-        x.value = Math.min(0, Math.max(-96, g.dx + (open.current ? -88 : 0)));
-      },
-      onPanResponderRelease: (_, g) => {
-        const dx = g.dx + (open.current ? -88 : 0);
-        open.current = dx < -44;
-        x.value = withTiming(open.current ? -88 : 0, { duration: 300 });
-      },
-    }),
-  )[0];
-
-  const rowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value + fly.value * 160 }, { translateY: fly.value * -71 }],
+  // .fly in index.html: slide up and away while fading.
+  const flyStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: fly.value * 160 }, { translateY: fly.value * -71 }],
     opacity: 1 - fly.value,
   }));
 
   return (
-    <View style={styles.nsw}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Delete note" onPress={onDelete} style={styles.ndel}>
-        <Text style={styles.ndelText}>Delete</Text>
-      </Pressable>
-      <Animated.View style={[styles.nrow, rowStyle]} {...pan.panHandlers}>
-        <NoteThumb picture={picture} n={n} />
-        <View style={styles.flex}>
-          <Text style={styles.ntime}>{fmtRange(n)}</Text>
-          <Shimmer on={tidying}>{n.body}</Shimmer>
-          <AttChip kind={n.kind} big />
+    <Animated.View layout={LinearTransition.duration(250)} exiting={FadeOut.duration(220)} style={flyStyle}>
+      <Swipeable
+        ref={(m) => register(n.id, m)}
+        enabled={flyIndex === null}
+        friction={1.6}
+        rightThreshold={44}
+        overshootRight={false}
+        renderRightActions={
+          flyIndex === null
+            ? (_p, _t, methods) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete note"
+                  onPress={() => {
+                    methods.close();
+                    onDelete();
+                  }}
+                  style={styles.ndel}>
+                  <Icon name="trash" size={20} color={Color.white} />
+                  <Text style={styles.ndelText}>Delete</Text>
+                </Pressable>
+              )
+            : undefined
+        }>
+        <View style={styles.nrow}>
+          <NoteThumb picture={picture} n={n} />
+          <View style={styles.flex}>
+            <Text style={styles.ntime}>{fmtRange(n)}</Text>
+            {n.body ? <Shimmer on={tidying}>{n.body}</Shimmer> : null}
+            <AttChip kind={n.kind} big />
+            <NoteExtras n={n} />
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Edit" onPress={onEdit} hitSlop={6} style={styles.editBtn}>
+            <Icon name="pen" size={20} strokeWidth={1.6} color="#DDDDDD" />
+          </Pressable>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Edit" onPress={onEdit} hitSlop={6} style={styles.editBtn}>
-          <Icon name="pen" size={20} strokeWidth={1.6} color="#DDDDDD" />
-        </Pressable>
-      </Animated.View>
-    </View>
+      </Swipeable>
+    </Animated.View>
   );
 }
 
@@ -268,6 +185,11 @@ export function NotesSheet({
   const [doneOpen, setDoneOpen] = useState(false);
   const [tidying, setTidying] = useState(false);
   const [flying, setFlying] = useState(false);
+  const swipes = useRef(new Map<string, SwipeableMethods>());
+  const register = (rowId: string, m: SwipeableMethods | null) => {
+    if (m) swipes.current.set(rowId, m);
+    else swipes.current.delete(rowId);
+  };
 
   if (!project) return null;
   const ed = editorName(project);
@@ -291,6 +213,9 @@ export function NotesSheet({
     if (!project || !send.length) return;
     const n = send.length;
     const sent = [...send];
+    // Close any open Delete first, then the rows fly out one by one.
+    swipes.current.forEach((m) => m.close());
+    await sleep(swipes.current.size ? 220 : 0);
     setFlying(true);
     await sleep(n * 90 + 420);
     const res = await saveSend(project, sent);
@@ -337,6 +262,7 @@ export function NotesSheet({
                   picture={picture}
                   tidying={tidying}
                   flyIndex={flying ? i : null}
+                  register={register}
                   onEdit={() => onEditDraft(n)}
                   onDelete={() => {
                     const undo = deleteNoteLater(projectId, n.id);
@@ -406,8 +332,9 @@ function AllRow({ n, picture, v, nv, projectId, openReply }: { n: Note; picture:
           <Text style={styles.ntime}>{fmt(n.time_seconds)}</Text>
           {nv < v && !n.done && <Text style={styles.nfrom}>FROM V{nv} · OPEN</Text>}
         </View>
-        <Text style={styles.ntxt}>{n.body}</Text>
+        {n.body ? <Text style={styles.ntxt}>{n.body}</Text> : null}
         <AttChip kind={n.kind} big />
+        <NoteExtras n={n} />
         {n.reply_text && (
           <View style={styles.nrep}>
             <Avatar k={n.reply_by_key ?? 'L'} size={18} />
@@ -642,21 +569,25 @@ const styles = StyleSheet.create({
   nsw: {
     overflow: 'hidden',
   },
+  // No red in our palette: Delete is Control grey with a white trash icon.
   ndel: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
     width: 88,
-    backgroundColor: Color.white,
+    backgroundColor: Color.control,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
   },
   ndelText: {
     fontFamily: Font.semibold,
     fontSize: 15,
     lineHeight: 20,
-    color: Color.black,
+    color: Color.white,
+  },
+  extras: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    marginTop: 10,
   },
   nrow: {
     flexDirection: 'row',

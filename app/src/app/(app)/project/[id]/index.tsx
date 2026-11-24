@@ -9,7 +9,7 @@ import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, PanResponder, Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,8 +17,9 @@ import { Avatar, BigButton, IconButton } from '@/components/brand/bits';
 import { Icon } from '@/components/brand/icons';
 import { DButton, DecisionBar, DrawToolBar, ToolBar, VoiceBar, type ToolKey } from '@/components/review/bars';
 import { DownloadOverlay } from '@/components/review/download-overlay';
-import { DrawingOverlay, DrawLayer, strokesToSvg, type DrawTool, type Stroke } from '@/components/review/draw-layer';
-import { NoteSheet, NotesSheet } from '@/components/review/note-sheets';
+import { captureDrawing, DrawingOverlay, DrawLayer, strokesToSvg, type DrawTool, type Stroke } from '@/components/review/draw-layer';
+import { NoteSheet, type Drawing, type NoteDraft } from '@/components/review/note-sheet';
+import { NotesSheet } from '@/components/review/note-sheets';
 import { ApproveSheet, DetailsSheet, EditProjectSheet, useAskActions, VersionsSheet } from '@/components/review/project-sheets';
 import { ProjectSheet } from '@/components/home/project-sheet';
 import { Stage, type Clock } from '@/components/review/stage';
@@ -29,7 +30,7 @@ import { approve as saveApprove } from '@/lib/flow';
 import { dotDate, editorName, weekday } from '@/lib/projects';
 import { addDays, canNote, fmt, fmtRange, money, reviewSubtitle, versionPicture, versionVideoUrl, whoKey, type Note, type Version } from '@/lib/review';
 import { addNote, currentVersion, drafts as draftsOf, loadReview, pins as pinsOf, useReviewData } from '@/lib/review-store';
-import { safeFileName, uploadWithProgress } from '@/lib/storage';
+import { safeFileName, uploadWithProgress, useSignedUrl } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useOverlay } from '@/providers/overlay-provider';
 import { useProject, useProjects } from '@/providers/projects-provider';
@@ -58,6 +59,12 @@ function useVersionMedia(v: Version | null) {
     };
   }, [v]);
   return { picture: v ? picture : null, videoUrl: v ? videoUrl : null };
+}
+
+/** A saved drawing (PNG in Storage) over the frame it was drawn on. */
+function DrawingImage({ path }: { path: string }) {
+  const url = useSignedUrl(path);
+  return url ? <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="fill" pointerEvents="none" /> : null;
 }
 
 export default function ReviewScreen() {
@@ -96,6 +103,9 @@ export default function ReviewScreen() {
   const [tool, setTool] = useState<DrawTool>('pen');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const drawSize = useRef({ w: 1, h: 1 });
+  const drawCapture = useRef<ViewInstance>(null);
+  // A note you were writing when you tapped Draw in the note sheet.
+  const pendingNote = useRef<{ t: number; b?: number | null; draft?: NoteDraft; edit?: Note } | null>(null);
   const [cmp, setCmp] = useState(false);
   const [split, setSplit] = useState(50);
   const [full, setFull] = useState(false);
@@ -183,9 +193,30 @@ export default function ReviewScreen() {
 
   /* ---------- notes ---------- */
 
-  const openNote = (o: { t: number; b?: number | null; kind?: Note['kind']; drawingSvg?: string | null; edit?: Note }) => {
+  const openNote = (o: { t: number; b?: number | null; kind?: Note['kind']; drawing?: Drawing | null; draft?: NoteDraft | null; edit?: Note }) => {
     pause();
-    openSheet(<NoteSheet projectId={id} t={Math.round(o.t)} b={o.b} kind={o.kind} drawingSvg={o.drawingSvg} picture={picture} edit={o.edit} onSaved={(time) => seek(time)} />);
+    openSheet(
+      <NoteSheet
+        projectId={id}
+        t={Math.round(o.t)}
+        b={o.b}
+        kind={o.kind}
+        drawing={o.drawing}
+        draft={o.draft}
+        picture={picture}
+        edit={o.edit}
+        onSaved={(time) => seek(time)}
+        onDraw={(draft) => {
+          // Off to draw on this frame; Next brings you back to this note.
+          closeSheet();
+          pendingNote.current = { t: o.edit ? o.edit.time_seconds : o.t, b: o.b, draft, edit: o.edit };
+          seek(o.edit ? o.edit.time_seconds : o.t);
+          setStrokes([]);
+          setTool('pen');
+          setMode('draw');
+        }}
+      />,
+    );
   };
 
   const openApprove = () => {
@@ -383,7 +414,7 @@ export default function ReviewScreen() {
   }, [nearPin, data.notes, cur]);
   const drawingHere = useMemo(() => {
     if (mode === 'draw' || !cur) return null;
-    return data.notes.find((n) => n.version_id === cur.id && n.drawing_svg && Math.abs(n.time_seconds - t) < 2)?.drawing_svg ?? null;
+    return data.notes.find((n) => n.version_id === cur.id && (n.drawing_path || n.drawing_svg) && Math.abs(n.time_seconds - t) < 2) ?? null;
   }, [mode, cur, data.notes, t]);
   const rangeBars = draftList.filter((d) => d.end_seconds).map((d) => ({ t: d.time_seconds, b: d.end_seconds! }));
 
@@ -439,13 +470,25 @@ export default function ReviewScreen() {
   else if (mode === 'draw')
     decide = (
       <DecisionBar icon="pen" title={`Draw on ${fmt(t)}`} sub="Circle it, point at it, scribble">
-        <DButton label="Cancel" tone="control" onPress={() => setMode(null)} />
+        <DButton
+          label="Cancel"
+          tone="control"
+          onPress={() => {
+            setMode(null);
+            const back = pendingNote.current;
+            pendingNote.current = null;
+            if (back) openNote({ t: back.t, b: back.b, draft: back.draft, edit: back.edit });
+          }}
+        />
         <DButton
           label="Next"
-          onPress={() => {
+          onPress={async () => {
             const svg = strokes.length ? strokesToSvg(strokes, drawSize.current.w, drawSize.current.h) : null;
+            const pngUri = strokes.length ? await captureDrawing(drawCapture) : null;
             setMode(null);
-            openNote({ t, kind: 'draw', drawingSvg: svg });
+            const back = pendingNote.current;
+            pendingNote.current = null;
+            openNote({ t: back?.t ?? t, b: back?.b, draft: back?.draft, edit: back?.edit, kind: 'draw', drawing: svg ? { svg, pngUri } : null });
           }}
         />
       </DecisionBar>
@@ -551,7 +594,11 @@ export default function ReviewScreen() {
           }}
         >
           <Stage kind={stageKind} videoUrl={videoUrl} picture={picture} duration={dur} clock={clock} onTime={onTime} onEnd={onEnd} editorName={ed}>
-            {drawingHere && <DrawingOverlay svg={drawingHere} />}
+            {drawingHere?.drawing_path ? (
+              <DrawingImage path={drawingHere.drawing_path} />
+            ) : drawingHere?.drawing_svg ? (
+              <DrawingOverlay svg={drawingHere.drawing_svg} />
+            ) : null}
             {/* Tap the video: pin a note at this moment (your turn), or play/pause. */}
             {v > 0 && mode !== 'draw' && !cmp && (
               <Pressable accessibilityLabel={can ? 'Add a note here' : 'Play or pause'} style={StyleSheet.absoluteFill} onPress={() => (can ? openNote({ t }) : playpause())} />
@@ -570,7 +617,7 @@ export default function ReviewScreen() {
                 <Icon name="play" size={30} />
               </Pressable>
             )}
-            {mode === 'draw' && <DrawLayer tool={tool} strokes={strokes} onStrokes={setStrokes} onSize={(w, h) => (drawSize.current = { w, h })} />}
+            {mode === 'draw' && <DrawLayer tool={tool} strokes={strokes} onStrokes={setStrokes} onSize={(w, h) => (drawSize.current = { w, h })} captureTarget={drawCapture} />}
             {cmp && (
               <View style={StyleSheet.absoluteFill} {...cmpPan.panHandlers}>
                 {cmpPics.b && <Image source={cmpPics.b} style={StyleSheet.absoluteFill} contentFit="cover" />}

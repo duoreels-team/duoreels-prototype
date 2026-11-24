@@ -34,7 +34,12 @@ export type Note = {
   done: boolean;
   by_key: string;
   drawing_svg: string | null;
+  /** The drawing as a PNG in "project-files". */
+  drawing_path: string | null;
   audio_path: string | null;
+  /** A picture from Photos or Files, in "project-files". */
+  image_path: string | null;
+  link_url: string | null;
   reply_text: string | null;
   reply_by_key: string | null;
   created_at: string;
@@ -57,7 +62,7 @@ export type Message = { id: string; editor_key: string; from_me: boolean; body: 
 
 const VERSION_COLS = 'id, project_id, number, video_path, thumb_path, media_kind, duration_seconds, by_key, created_at';
 const NOTE_COLS =
-  'id, version_id, time_seconds, end_seconds, body, kind, status, done, by_key, drawing_svg, audio_path, reply_text, reply_by_key, created_at';
+  'id, version_id, time_seconds, end_seconds, body, kind, status, done, by_key, drawing_svg, drawing_path, audio_path, image_path, link_url, reply_text, reply_by_key, created_at';
 
 export async function fetchReview(projectId: string) {
   const versions = await supabase.from('versions').select(VERSION_COLS).eq('project_id', projectId).order('number').returns<Version[]>();

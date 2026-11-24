@@ -1,14 +1,19 @@
 /**
- * Draw on the frame (prototype act.draw): pen, arrow, circle in violet with a glow.
- * The drawing is saved with the note as an SVG image and shown over that moment.
+ * Draw on the frame (prototype act.draw): pen, arrow, circle and tick in violet with a glow.
+ * Finger tracking runs through gesture-handler. When you tap Next, the drawing is
+ * captured as a transparent PNG (react-native-view-shot) and saved with the note;
+ * the SVG is kept too so it shows instantly.
  */
-import { useEffect, useRef, useState } from 'react';
-import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { useRef, useState, type RefObject } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent, type ViewInstance } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { SvgXml } from 'react-native-svg';
+import { captureRef } from 'react-native-view-shot';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { Color } from '@/constants/brand';
 
-export type DrawTool = 'pen' | 'line' | 'circle';
+export type DrawTool = 'pen' | 'line' | 'circle' | 'check';
 export type Stroke = { tool: DrawTool; pts: [number, number][] };
 
 function strokeMarkup(s: Stroke) {
@@ -19,6 +24,14 @@ function strokeMarkup(s: Stroke) {
     const rx = Math.max(1, Math.abs(b[0] - a[0]) / 2);
     const ry = Math.max(1, Math.abs(b[1] - a[1]) / 2);
     return `<ellipse cx="${((a[0] + b[0]) / 2).toFixed(1)}" cy="${((a[1] + b[1]) / 2).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}"/>`;
+  }
+  if (s.tool === 'check') {
+    // A tick that fills the box you drag: short stroke down, long stroke up.
+    const x0 = Math.min(a[0], b[0]);
+    const y0 = Math.min(a[1], b[1]);
+    const w = Math.max(12, Math.abs(b[0] - a[0]));
+    const h = Math.max(12, Math.abs(b[1] - a[1]));
+    return `<path d="M${x0.toFixed(1)} ${(y0 + h * 0.55).toFixed(1)}L${(x0 + w * 0.38).toFixed(1)} ${(y0 + h).toFixed(1)}L${(x0 + w).toFixed(1)} ${y0.toFixed(1)}"/>`;
   }
   const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
   const L = 15;
@@ -41,56 +54,82 @@ export function DrawingOverlay({ svg }: { svg: string }) {
   );
 }
 
-export function DrawLayer({ tool, strokes, onStrokes, onSize }: { tool: DrawTool; strokes: Stroke[]; onStrokes: (s: Stroke[]) => void; onSize: (w: number, h: number) => void }) {
+/** Save what's drawn as a transparent PNG; returns a local file uri. */
+export async function captureDrawing(ref: RefObject<ViewInstance | null>) {
+  if (!ref.current) return null;
+  try {
+    return await captureRef(ref as Parameters<typeof captureRef>[0], { format: 'png', quality: 1, result: 'tmpfile' });
+  } catch {
+    return null;
+  }
+}
+
+export function DrawLayer({
+  tool,
+  strokes,
+  onStrokes,
+  onSize,
+  captureTarget,
+}: {
+  tool: DrawTool;
+  strokes: Stroke[];
+  onStrokes: (s: Stroke[]) => void;
+  onSize: (w: number, h: number) => void;
+  /** The plain layer (no frame, no border) that becomes the PNG. */
+  captureTarget: RefObject<ViewInstance | null>;
+}) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [live, setLive] = useState<Stroke | null>(null);
   const current = useRef<Stroke | null>(null);
-  const toolRef = useRef(tool);
-  const strokesRef = useRef(strokes);
-  useEffect(() => {
-    toolRef.current = tool;
-    strokesRef.current = strokes;
-  }, [tool, strokes]);
 
-  // eslint-disable-next-line react-hooks/refs -- the handlers read refs only while a finger moves, never during render
-  const pan = useState(() =>
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: (e) => {
-        const p: [number, number] = [e.nativeEvent.locationX, e.nativeEvent.locationY];
-        current.current = { tool: toolRef.current, pts: [p, p] };
-        setLive({ ...current.current });
-      },
-      onPanResponderMove: (e) => {
-        const s = current.current;
-        if (!s) return;
-        const p: [number, number] = [e.nativeEvent.locationX, e.nativeEvent.locationY];
-        s.pts = s.tool === 'pen' ? [...s.pts, p] : [s.pts[0], p];
-        setLive({ ...s });
-      },
-      onPanResponderRelease: () => {
-        if (current.current) onStrokes([...strokesRef.current, current.current]);
-        current.current = null;
-        setLive(null);
-      },
-    }),
-  )[0];
+  const begin = (x: number, y: number) => {
+    current.current = { tool, pts: [[x, y], [x, y]] };
+    setLive({ ...current.current });
+  };
+  const move = (x: number, y: number) => {
+    const s = current.current;
+    if (!s) return;
+    s.pts = s.tool === 'pen' ? [...s.pts, [x, y]] : [s.pts[0], [x, y]];
+    setLive({ ...s, pts: [...s.pts] });
+  };
+  const end = () => {
+    if (current.current) onStrokes([...strokes, current.current]);
+    current.current = null;
+    setLive(null);
+  };
+
+  const pan = usePanGesture({
+    minDistance: 0,
+    onBegin: (e) => {
+      'worklet';
+      scheduleOnRN(begin, e.x, e.y);
+    },
+    onUpdate: (e) => {
+      'worklet';
+      scheduleOnRN(move, e.x, e.y);
+    },
+    onFinalize: () => {
+      'worklet';
+      scheduleOnRN(end);
+    },
+  });
 
   const all = live ? [...strokes, live] : strokes;
 
   return (
-    <View
-      style={[StyleSheet.absoluteFill, styles.layer]}
-      onLayout={(e: LayoutChangeEvent) => {
-        const { width, height } = e.nativeEvent.layout;
-        setSize({ w: width, h: height });
-        onSize(width, height);
-      }}
-      {...pan.panHandlers}>
-      {size.w > 0 && all.length > 0 && <SvgXml xml={strokesToSvg(all, size.w, size.h)} width="100%" height="100%" />}
-    </View>
+    <GestureDetector gesture={pan}>
+      <View
+        style={[StyleSheet.absoluteFill, styles.layer]}
+        onLayout={(e: LayoutChangeEvent) => {
+          const { width, height } = e.nativeEvent.layout;
+          setSize({ w: width, h: height });
+          onSize(width, height);
+        }}>
+        <View ref={captureTarget} collapsable={false} style={StyleSheet.absoluteFill} pointerEvents="none">
+          {size.w > 0 && all.length > 0 && <SvgXml xml={strokesToSvg(all, size.w, size.h)} width="100%" height="100%" />}
+        </View>
+      </View>
+    </GestureDetector>
   );
 }
 
