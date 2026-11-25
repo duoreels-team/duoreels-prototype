@@ -7,7 +7,8 @@ import { View } from 'react-native';
 import PrototypeView from '@/components/prototype-view';
 import { Color } from '@/constants/brand';
 
-const PROTOTYPE_URL = 'https://duoreels-team.github.io/duoreels-prototype/#home';
+// ?v= changes on every app start so the phone never shows a cached, older prototype.
+const PROTOTYPE_URL = `https://duoreels-team.github.io/duoreels-prototype/?v=${Date.now()}#home`;
 
 export default function HomeScreen() {
   return (
