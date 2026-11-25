@@ -1419,7 +1419,9 @@ document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.ta
  addEventListener('resize',fit);fit();})();
 /* ================= boot ================= */
 S=freshState();
-reset('splash',{},'none');
+// #home opens straight on the creator home (used by the Expo app), otherwise start at the splash
+if(location.hash==='#home'){S.role='creator';reset('home',{},'none');}
+else reset('splash',{},'none');
 </script>
 </body>
 </html>
