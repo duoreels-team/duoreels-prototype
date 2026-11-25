@@ -104,6 +104,8 @@ html.app,html.app body{background:#000;overflow:hidden}html.app #map,html.app .s
 .subsec.line{border-top:1px solid #2a2a2e;margin-top:2px;padding-top:14px}
 .subsec i{width:6px;height:6px;border-radius:50%}
 .subsec+.row{border-top:0!important}
+.fold{width:48px;height:48px;border-radius:12px;background:var(--control);display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.frow{gap:14px}
 .mecard{display:block;width:100%;text-align:left;padding:16px;margin-top:22px}
 .mecard .mtop{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .mecard .mtop .tx{flex:1;display:flex;flex-direction:column}.mecard .mtop b{font:900 24px var(--disp);letter-spacing:.03em}
@@ -552,7 +554,7 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 /* marketplace header: Blinds photo, fades out under the title */
 .mk-scroll{position:relative}
 .mk-scroll>.pad{position:relative;z-index:1}
-.mk-blinds{position:absolute;left:0;right:0;top:0;height:240px;pointer-events:none;opacity:.5;filter:blur(3px);background:repeating-linear-gradient(65deg,#2B2150 0 37px,transparent 37px 77px);-webkit-mask-image:linear-gradient(to bottom,#000 0px,#000 150px,transparent 240px);mask-image:linear-gradient(to bottom,#000 0px,#000 150px,transparent 240px)}
+.mk-blinds{position:absolute;left:0;right:0;top:0;height:240px;pointer-events:none;opacity:.62;filter:blur(2px);background:repeating-linear-gradient(65deg,#2B2150 0 37px,transparent 37px 77px);-webkit-mask-image:linear-gradient(to bottom,#000 0px,#000 150px,transparent 240px);mask-image:linear-gradient(to bottom,#000 0px,#000 150px,transparent 240px)}
 </style>
 </head>
 <body>
@@ -684,7 +686,7 @@ function freshState(){
       {id:'c3',title:'Picnic with Mochi',type:'Vlog',img:'c3',vimg:'c3',ed:'J',status:'done',v:3,dur:126,sub:'Done · Oct 12',pins:[],drafts:[],all:[]},
       {id:'c4',title:'Rainy night walk',type:'Travel',img:'c4',vimg:'c4',ed:'L',status:'done',v:2,dur:58,sub:'Posted · Oct 2',pins:[],drafts:[],all:[]},
     ],
-    inbox:[{by:'L',last:'Park',proj:'Morning routine',t:'v3 is up. Tightened the intro and swapped the music.',time:'2h',id:'mr',go:'openReview',u:1},{by:'S',last:'Kim',t:'Yes, I can do 2 days for $75.',time:'5h',u:1},{by:'J',last:'Diaz',proj:'Product unboxing',t:'Started editing. First cut by Mon.',time:'Yesterday',id:'pu'},{by:'L',last:'Park',proj:'Wedding teaser',t:'Two quick questions about the vows part.',time:'Mon',id:'wed'},{by:'M',last:'',proj:'Latte afternoon',t:'You approved it · $45 released to Leo',time:'Oct 30',id:'c1'}],
+    inbox:[{by:'L',last:'Park',proj:'Morning routine',t:'v3 is up. Tightened the intro and swapped the music.',time:'2h',id:'mr',go:'openReview',u:1},{by:'S',last:'Kim',t:'Yes, I can do 2 days for $75.',time:'5h',u:1},{by:'D',last:'Ruiz',t:'Sent you my food reels — rates are on my profile.',time:'Mon'},{by:'J',last:'Diaz',proj:'Product unboxing',t:'Started editing. First cut by Mon.',time:'Yesterday',id:'pu'},{by:'L',last:'Park',proj:'Wedding teaser',t:'Two quick questions about the vows part.',time:'Mon',id:'wed'},{by:'M',last:'',proj:'Latte afternoon',t:'You approved it · $45 released to Leo',time:'Oct 30',id:'c1'}],
     activity:[{by:'L',t:'Leo uploaded v3',p:'Morning routine · 2 h ago',tag:['NEW V3','violet'],act:['Review v3','review','mr'],unread:true},{by:'J',t:'Jon started editing',p:'Product unboxing · yesterday'},{by:'L',t:'Leo sent 2 questions',p:'Wedding teaser · Mon'},{by:'M',t:'You approved Latte afternoon',p:'$45 released to Leo · Oct 30',tag:['DONE','grey']}],
     msgs:{L:[{me:0,t:'Hey Maya! Got the footage, starting tonight.'},{me:1,t:'Amazing, thank you 🙏'},{me:0,t:'Sent you my storefront link.'}],S:[{me:0,t:'Yes, I can do 2 days for $75.'}],J:[{me:0,t:'You hired Jon · Product unboxing'}]},
     ed:{ // editor side
@@ -841,6 +843,7 @@ V.profile=()=>({html:`<div class="scroll"><div class="topbar">${back_()}</div><d
   <div class="pad" style="padding-bottom:40px"><button class="btn-main" data-act="profileDone">Continue</button></div>`});
 
 /* ---- creator home ---- */
+function mast(){const un=(S.inbox||[]).filter(m=>m.u).length;return `<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center"><button data-act="accounts" aria-label="Switch account" style="display:flex;align-items:center;height:44px;margin-left:-6px;padding:0 6px">${MARK(30)}</button></span><button class="ib" data-act="go" data-to="messages" aria-label="Messages" style="position:relative">${I('chat')}${un?`<i style="position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--violet)"></i>`:''}</button></div></div>`;}
 function homeRow(p){const [tg,c]=tagFor(p);return pRow(p,`<span class="tag ${c}">${tg}</span>`);}
 function waitRow(p){return pRow(p,'');}
 function pRow(p,tag){return `<div class="row wrow" data-act="openProject" data-id="${p.id}" role="button" tabindex="0"><div class="cv34 sm" style="${bg(p.img)}"><span class="cut">${mmss(p.dur)}</span></div><span class="tx"><b class="lab">${p.title}</b><div class="meta">${metaLine(p)}</div>${tag?`<div style="margin-top:6px">${tag}</div>`:''}</span>${p.eds?`<span class="avs">${p.eds.map(k=>av(k,24)).join('')}</span>`:av(p.ed,24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" data-act="more" data-id="${p.id}" aria-label="More">${I('more',20)}</button></div>`;}
@@ -851,8 +854,9 @@ V.home=()=>{
   const mine=[...prog].filter(need).sort((a,b)=>order(a)-order(b)),rest=prog.filter(p=>!need(p));
   const done=S.projects.filter(p=>p.status==='done');
   const unread=S.inbox.filter(m=>m.u).length;
-  return {tab:'home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center"><button data-act="accounts" aria-label="Switch account" style="display:flex;align-items:center;height:44px;margin-left:-6px;padding:0 6px">${MARK(30)}</button></span><button class="ib" data-act="go" data-to="activity" aria-label="Messages" style="position:relative">${I('bell')}${unread?`<i style="position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#fff"></i>`:''}</button></div></div>
+  return {tab:'home',html:`${mast()}
   <div class="scroll home-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
+   <h1 class="ptitle" style="margin-bottom:16px">Projects</h1>
    <button class="btn-main slant" data-act="go" data-to="newproject">${I('plus',20,2.6)} New project</button>
    <div class="sec" style="margin-top:24px"><span>In progress · ${prog.length}</span><button data-act="seeProg">See all ›</button></div>
    ${mine.length?`<div class="list stag">${mine.map(homeRow).join('')}</div>`:''}<div class="list stag" style="margin-top:${mine.length?12:0}px">${rest.map(waitRow).join('')}<button class="row" data-act="seeProg" style="justify-content:center;gap:4px"><b class="lab">See all ${prog.length} in progress</b>${I('chev',16)}</button></div>
@@ -861,10 +865,23 @@ V.home=()=>{
    <div class="rail">${done.map(p=>`<button data-act="openProject" data-id="${p.id}"><div class="cv34" style="${bg(p.img)}"><span class="dur">${fmt(p.dur)}</span></div><div class="lab" style="margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div><div class="meta">${p.sub.split(' · ')[1]||''}</div></button>`).join('')}</div>
   </div></div>`};
 };
-V.activity=()=>{const unread=S.inbox.filter(m=>m.u).length;
- return {html:`<div class="scroll">${topbar('Messages',unread?`${unread} unread`:'All caught up')}<div class="pad">
-  <div class="list stag" style="margin-top:6px">${S.inbox.map(m=>`<button class="row mrow ${m.u?'u':''}" ${m.id?`data-act="${m.go||'openProject'}" data-id="${m.id}"`:`data-act="go" data-to="thread" data-k="${m.by}"`}>${av(m.by,44)}<span class="tx"><span class="ml1"><b>${PPL[m.by].n}${m.last?' '+m.last:''}</b>${m.proj?`<span class="mproj">· ${m.proj}</span>`:''}</span><span class="mtxt">${m.t}</span></span><span class="mr"><span class="mtime">${m.time}</span><span class="dot" style="visibility:${m.u?'visible':'hidden'}"></span></span></button>`).join('')}</div>
-  <p class="meta" style="margin-top:14px">Project updates and chats with editors, in one place.</p></div><div style="height:40px"></div></div>`};};
+const isMk=m=>!m.proj&&m.by!=='M';
+const fold=(icon,title,sub,to,n)=>`<button class="row frow" data-act="go" data-to="${to}"><span class="fold">${I(icon,22)}</span><span class="tx"><b class="lab" style="font-size:16px">${title}</b><div class="meta">${sub}</div></span>${n?`<span class="badge">${n}</span>`:''}${I('chev',18)}</button>`;
+const mrow=m=>`<button class="row mrow ${m.u?'u':''}" ${m.id?`data-act="${m.go||'openProject'}" data-id="${m.id}"`:`data-act="go" data-to="thread" data-k="${m.by}"`}>${av(m.by,44)}<span class="tx"><span class="ml1"><b>${PPL[m.by].n}${m.last?' '+m.last:''}</b>${m.proj?`<span class="mproj">· ${m.proj}</span>`:''}</span><span class="mtxt">${m.t}</span></span><span class="mr"><span class="mtime">${m.time}</span><span class="dot" style="visibility:${m.u?'visible':'hidden'}"></span></span></button>`;
+V.activity=()=>{S.mtab=S.mtab||'all';const chats=S.inbox.filter(m=>!isMk(m)),mk=S.inbox.filter(isMk),upd=(S.activity||[]).filter(a=>a.unread).length;const list=S.mtab==='unread'?chats.filter(m=>m.u):chats;
+ return {html:`<div class="fixedtop">${topbar('','')}</div><div class="scroll mk-scroll" style="padding-top:101px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
+  <h1 class="ptitle">Messages</h1>
+  <div class="field" style="display:flex;align-items:center;gap:8px;margin-top:16px;color:var(--meta)">${I('search',18)}<input style="background:none;border:0;outline:none;flex:1;min-width:0" placeholder="Search people and projects"></div>
+  <div class="seg" style="margin-top:14px;width:220px"><button class="${S.mtab==='all'?'on':''}" data-act="mTab" data-t="all">All</button><button class="${S.mtab==='unread'?'on':''}" data-act="mTab" data-t="unread">Unread · ${chats.filter(m=>m.u).length}</button></div>
+  <div class="list" style="margin-top:14px">${fold('bag','Marketplace',mk.length?`${mk.length} editor${mk.length>1?'s':''} you asked about`:'Chats with editors you haven’t hired','mkinbox',mk.filter(m=>m.u).length)}${fold('bell','Project updates',upd?`${upd} new · versions, deadlines, approvals`:'Versions, deadlines, approvals','updates',upd)}</div>
+  <div class="sec" style="margin-top:22px"><span>Chats</span></div>
+  <div class="list stag">${list.map(mrow).join('')||'<div class="empty">Nothing unread.</div>'}</div>
+  <div style="height:40px"></div></div></div>`};};
+V.mkinbox=()=>{const mk=S.inbox.filter(isMk);return {html:`<div class="scroll">${topbar('Marketplace','Editors you asked about')}<div class="pad">
+  <div class="list stag" style="margin-top:6px">${mk.map(mrow).join('')||'<div class="empty">No editor chats yet.</div>'}</div>
+  <button class="btn-sec" style="width:100%;margin-top:16px" data-act="tab" data-to="market">${I('bag',18)}Find an editor</button><div style="height:40px"></div></div></div>`};};
+V.updates=()=>({html:`<div class="scroll">${topbar('Project updates','Versions, deadlines, approvals')}<div class="pad">
+  <div class="list stag" style="margin-top:6px">${(S.activity||[]).map(a=>`<button class="row" ${a.act?`data-act="${a.act[1]==='review'?'openReview':a.act[1]}" data-id="${a.act[2]}"`:'data-act="noop"'}>${av(a.by,36)}<span class="tx"><b class="lab" style="font-size:15px">${a.t}</b><div class="meta">${dotDate(a.p)}</div>${a.tag?`<span class="tag ${a.tag[1]}" style="margin-top:6px">${a.tag[0]}</span>`:''}</span>${a.unread?'<span class="dot"></span>':''}</button>`).join('')}</div><div style="height:40px"></div></div></div>`});
 V.messages=V.activity;
 /* ---- all projects ---- */
 function filtered(){const f=S.filter;let l=S.projects.filter(p=>f.status==='all'||p.status===f.status);if(f.types.length)l=l.filter(p=>f.types.includes(p.type));if(f.sort==='Deadline')l=[...l].sort((a,b)=>(a.status==='done')-(b.status==='done'));return l;}
@@ -1048,7 +1065,7 @@ const EDS=[{k:'L',name:'Leo Park',star:'4.9',style:'Reels · vlogs',price:60,pro
  {k:'J',name:'Jon Diaz',star:'5.0',style:'Product ads',price:90,projects:14,reels:['rJ1','rJ2','rJ3','rJ4','rJ5','rJ6'],durs:['0:15','0:22','0:18','0:30','0:26','0:20'],
  reviews:[['Nia B.','N','#8E6CFF',5,'Oct 25','Our ceramic pour shot sold out the batch in a weekend. He knows how to make a product feel warm.','Pour-over set'],['Meera S.','M','#FFC94D',5,'Oct 11','Simple, honest soap ad. No fake hype, just my hands and the process. Exactly what I asked for.','Soap launch'],['Kenji A.','K','#2EC4B6',5,'Sep 30','Delivered a day early with three length versions for every platform.','Trail pack'],['Brett C.','B','#FF9A4D',5,'Sep 14','Shot list help before I filmed saved me a reshoot.','Camp stove'],['Diego & friends','D','#3D8BFF',5,'Aug 28','Made a board game night look as fun as it actually was.','Game night'],['Vinh T.','V','#3DE0A0',4,'Aug 10','Clean edit. Wanted more slow-mo, he added it in round 2.','Sneaker drop']]}];
 const revN=e=>e.reviews.length;
-V.market=()=>({tab:'market',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1"></span><button class="ib" data-act="go" data-to="messages" aria-label="Messages">${I('chat')}</button></div></div><div class="scroll mk-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
+V.market=()=>({tab:'market',html:`${mast()}<div class="scroll mk-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
   <h1 class="ptitle">Marketplace</h1>
   <div style="display:flex;gap:8px;margin-top:16px"><div class="field" style="display:flex;align-items:center;gap:8px;color:var(--meta);flex:1">${I('search',18)}<input style="background:none;border:0;outline:none;flex:1;min-width:0" placeholder='Search a style, e.g. "cozy vlog"'></div><button class="chip" data-act="mfilter" aria-label="Filter" style="height:48px;width:48px;justify-content:center;padding:0;position:relative;">${I('filter',18)}${S.mf.length?`<span class="badge" style="position:absolute;top:-6px;right:-6px">${S.mf.length}</span>`:''}</button></div>
   ${S.mf.length?`<div class="chips" style="margin-top:10px">${S.mf.map(a=>`<button class="chip" data-act="mfClear" data-v="${a}" style="height:28px">${a}${I('close',13,2)}</button>`).join('')}</div>`:''}
@@ -1070,7 +1087,8 @@ V.thread=({k='L'})=>{const m=S.msgs[k]||[];return {html:`<div style="padding-top
   mount(el){const c=$('#chat',el);c.scrollTop=9e9;$('#cf',el).addEventListener('submit',e=>{e.preventDefault();const v=$('#ci',el).value.trim();if(!v)return;(S.msgs[k]=S.msgs[k]||[]).push({me:1,t:v});c.insertAdjacentHTML('beforeend',`<div class="bubble me">${esc(v)}</div>`);$('#ci',el).value='';c.scrollTop=9e9;tick();setTimeout(()=>{const r='Sounds good! Send me the brief and I can start Friday.';S.msgs[k].push({me:0,t:r});c.insertAdjacentHTML('beforeend',`<div class="bubble them">${r}</div>`);c.scrollTop=9e9;},1400);});}};};
 
 /* ---- me ---- */
-V.me=()=>{const ed=S.role==='editor';return {tab:'me',html:`<div class="scroll" style="padding-bottom:110px"><div class="pad" style="padding-top:20px">
+V.me=()=>{const ed=S.role==='editor';return {tab:'me',html:`${mast()}<div class="scroll mk-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
+  <h1 class="ptitle" style="margin-bottom:18px">Me</h1>
   <div style="display:flex;gap:14px;align-items:center" class="slide24"><button data-act="meAvatar" aria-label="Change photo" style="position:relative;flex:none">${av(ed?'L':'M',64)}<span style="position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;background:var(--violet);color:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #000">${I('camera',13,2)}</span></button><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 class="t28">${ed?'Leo':S.me}</h2><button class="chip" style="height:26px;font-size:13px;padding:0 12px" data-act="accounts">Switch account</button></div><div class="meta">${ed?'Editor':'Creator'} · Los Angeles</div></div></div>
   <button class="card mecard" data-act="go" data-to="plan">
    <div class="mtop"><span class="tx"><b>VIP</b><span class="meta">Renews 12.4</span></span><span class="mlink">Plan ${I('chev',16)}</span></div>
@@ -1123,8 +1141,9 @@ V['ed-home']=()=>{const E=S.ed;const left=E.todo.filter(x=>!x.done).length;const
   {img:'wed',dur:138,title:'Wedding teaser',l2:'v1 · Maya · due 12.2'}];
  const big=r=>`<div class="prow big" ${r.go?`data-act="go" data-to="${r.go}"`:`data-act="edSoon"`} role="button" tabindex="0"><div class="cv34" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><div class="tx"><b>${r.title}</b><span class="meta" style="font-size:14px">${r.l2}</span>${r.tag?`<span class="tag ${r.tag[1]}">${r.tag[0]}</span>`:''}</div><button class="ib" style="width:30px;align-self:flex-start;margin-top:2px;color:var(--grey)" aria-label="More">${I('more',20)}</button></div>`;
  const small=r=>`<div class="row wrow" data-act="edSoon" role="button" tabindex="0"><div class="cv34 sm" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><span class="tx"><b class="lab">${r.title}</b><div class="meta">${r.l2}</div></span>${av('M',24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" aria-label="More">${I('more',20)}</button></div>`;
- return {tab:'ed-home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center"><button data-act="accounts" aria-label="Switch account" style="display:flex;align-items:center;height:44px;margin-left:-6px;padding:0 6px">${MARK(30)}</button></span><button class="ib" data-act="go" data-to="activity" aria-label="Messages">${I('bell')}</button></div></div>
+ return {tab:'ed-home',html:`${mast()}
  <div class="scroll mk-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
+  <h1 class="ptitle" style="margin-bottom:16px">Projects</h1>
   ${!E.accepted?`<button class="card slide24" style="width:100%;text-align:left;padding:14px;display:flex;gap:12px;align-items:center;background:linear-gradient(120deg,#1C1C1E,#1a1430)" data-act="go" data-to="join">${av('M',40)}<span class="tx" style="flex:1"><b class="lab" style="font-size:15px">Maya invited you</b><div class="meta">${E.invite.title} · $${E.invite.price} · 3 rounds</div></span>${I('chev',18)}</button>`:''}
   <div class="sec" style="margin-top:24px"><span>In progress · ${rows.length}</span><button data-act="edSoon">See all ›</button></div>
   <div class="list stag">${rows.filter(r=>r.btn).map(r=>`<div class="row wrow" ${r.go?`data-act="go" data-to="${r.go}"`:'data-act="edSoon"'} role="button" tabindex="0"><div class="cv34 sm" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><span class="tx"><b class="lab">${r.title}</b><div class="meta">${r.l2}</div>${r.tag?`<span class="tag ${r.tag[1]}">${r.tag[0]}</span>`:''}</span>${av('M',24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" data-act="edSoon" aria-label="More">${I('more',20)}</button></div>`).join('')}</div>
@@ -1386,6 +1405,7 @@ Object.assign(act,{
  meAvatar(){const opts=['s01','s02','s03','s04','s05','s06'];openSheet(`<h3 class="t20" style="margin:4px 0 4px">Profile photo</h3><p class="meta" style="margin:0 0 14px">Editors see it on every project.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${opts.map(o=>`<button data-act="meAvatarSet" data-i="${o}" style="aspect-ratio:1;border-radius:50%;background:url('${IMG(o)}') center/cover;${S.meImg===o?'box-shadow:0 0 0 3px var(--violet)':''}" aria-label="Use this photo"></button>`).join('')}</div><div class="list" style="margin-top:16px"><button class="row" data-act="meAvatarSet" data-i="s07">${I('camera',20)}<span class="tx"><b class="lab" style="font-size:15px">Take a photo</b></span>${I('chev',18)}</button><button class="row" data-act="meAvatarSet" data-i="">${I('close',20)}<span class="tx"><b class="lab" style="font-size:15px">Use my color</b></span></button></div>`);},
  meAvatarSet(el){S.meImg=el.dataset.i||null;closeSheet();refresh();toast(S.meImg?'Photo updated':'Back to your color');},
  drawColor(el){RV.color=el.dataset.c;$$('.dsw').forEach(b=>b.classList.toggle('on',b===el));},
+ mTab(el){S.mtab=el.dataset.t;refresh();},
  seeProg(){S.filter={status:'progress',types:[],sort:'Newest'};go('all');},
  editDraft(el){const p=rvP();const d=p.drafts.find(x=>x.id==el.dataset.nid);if(!d)return;closeSheet();setTimeout(()=>addNoteAt(d.att,d),420);},
  replyNote(el){const p=rvP();const d=p.all.find(x=>x.id==el.dataset.nid);openSheet(`<div style="display:flex;gap:10px;align-items:center;margin:4px 0 10px">${av(d.by,26)}<b class="lab" style="font-size:15px">Reply to ${d.by==='M'?'your note':PPL[d.by].n} · ${fmt(d.t)}</b></div><div class="card t15" style="padding:12px;background:#2C2C30;margin-bottom:10px">${esc(d.text)}</div><textarea class="field" id="rt2" style="min-height:70px" placeholder="Write a reply"></textarea><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="ib" style="background:var(--violet);color:#000;border-radius:50%" data-act="sendReply" data-nid="${d.id}" aria-label="Send reply">${I('up',22,2.4)}</button></div>`,b=>setTimeout(()=>$('#rt2',b).focus(),350));},
