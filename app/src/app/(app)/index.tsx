@@ -102,14 +102,10 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* one block, two groups: what needs you, then what editors are working on */}
-          <View style={styles.list}>
+          {/* two blocks with a small gap: what needs you, then what editors are working on */}
+          <View>
             {GROUPS.map((g, gi) => (
-              <View key={g.label}>
-                <View style={[styles.subsec, gi > 0 && styles.rowLine]}>
-                  <View style={[styles.subDot, { backgroundColor: g.dot }]} />
-                  <Text style={styles.subText}>{g.label} · {g.items.length}</Text>
-                </View>
+              <View key={g.label} style={[styles.list, gi > 0 && { marginTop: 12 }]}>
             {g.items.map((p, i) => (
               <Pressable key={p.id} onPress={() => soon(p.title)} style={({ pressed }) => [styles.row, i > 0 && styles.rowLine, pressed && { backgroundColor: Color.surfaceSelected }]}>
                 <View>
@@ -135,9 +131,7 @@ export default function HomeScreen() {
             ))}
               </View>
             ))}
-            <Pressable onPress={() => soon('All projects')} style={[styles.row, styles.rowLine, { justifyContent: 'center' }]}>
-              <Text style={styles.seeAll}>See all {IN_PROGRESS.length} in progress ›</Text>
-            </Pressable>
+
           </View>
 
           <Pressable onPress={() => soon('Marketplace')} style={styles.mkRow}>
