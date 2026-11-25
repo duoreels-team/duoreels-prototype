@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 162 116" fill="none">
+<defs>
+<linearGradient id="a" x1="50" y1="50" x2="81" y2="18" gradientUnits="userSpaceOnUse"><stop stop-color="#C8B3FF"/><stop offset="1" stop-color="#F4EEFF"/></linearGradient>
+<linearGradient id="b" x1="81" y1="18" x2="116" y2="51" gradientUnits="userSpaceOnUse"><stop stop-color="#B49BFF"/><stop offset="1" stop-color="#8460F5"/></linearGradient>
+<linearGradient id="c" x1="50" y1="51" x2="81" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#A487FF"/><stop offset="1" stop-color="#EFE8FF"/></linearGradient>
+<linearGradient id="d" x1="116" y1="51" x2="81" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#6D45E4"/><stop offset="1" stop-color="#5A33D2"/></linearGradient>
+<linearGradient id="e" x1="20" y1="44" x2="42" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#7A54EE"/><stop offset="1" stop-color="#5B34D4"/></linearGradient>
+<linearGradient id="f" x1="45" y1="51" x2="70" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#8C69FA"/><stop offset="1" stop-color="#CDBAFF"/></linearGradient>
+<linearGradient id="g" x1="118" y1="51" x2="100" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#7651EC"/><stop offset="1" stop-color="#9677FF"/></linearGradient>
+<linearGradient id="h" x1="142" y1="44" x2="122" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#B096FF"/><stop offset="1" stop-color="#7B55EE"/></linearGradient>
+<linearGradient id="bar" x1="44" x2="118" y1="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#E4DAFF"/><stop offset=".55" stop-color="#9373FF"/><stop offset=".8" stop-color="#7A55F0"/><stop offset="1" stop-color="#C9B6FF"/></linearGradient>
+<radialGradient id="ball" cx=".36" cy=".32" r=".75"><stop stop-color="#fff"/><stop offset=".5" stop-color="#EAE2FF"/><stop offset="1" stop-color="#9B7BFF"/></radialGradient>
+</defs>
+<path d="M20 44 45 51 40 96Z" fill="url(#e)"/>
+<path d="M45 51 81 96H40Z" fill="url(#f)"/>
+<path d="M45 51 81 16V51Z" fill="url(#a)"/>
+<path d="M45 51H81V96Z" fill="url(#c)"/>
+<path d="M81 16 117 51H81Z" fill="url(#b)"/>
+<path d="M81 51H117L81 96Z" fill="url(#d)"/>
+<path d="M117 51 81 96H122Z" fill="url(#g)"/>
+<path d="M117 51 142 44 122 96Z" fill="url(#h)"/>
+<path d="M45 51H117" stroke="#fff" stroke-opacity=".28"/>
+<path d="M81 18V96" stroke="#fff" stroke-opacity=".9" stroke-width="1.4"/>
+<path d="M40 96H122" stroke="#EDE6FF" stroke-opacity=".7" stroke-width="1.2"/>
+<circle cx="20" cy="40" r="7" fill="url(#ball)"/><circle cx="81" cy="12" r="8" fill="url(#ball)"/><circle cx="142" cy="40" r="7" fill="url(#ball)"/>
+<rect x="45" y="103" width="72" height="7" rx="2.5" fill="url(#bar)"/>
+<path d="M139 3c.8 4 2 5.2 6 6-4 .8-5.2 2-6 6-.8-4-2-5.2-6-6 4-.8 5.2-2 6-6Z" fill="#fff" fill-opacity=".85"/>
+<path d="M12 84c.5 2.6 1.4 3.5 4 4-2.6.5-3.5 1.4-4 4-.5-2.6-1.4-3.5-4-4 2.6-.5 3.5-1.4 4-4Z" fill="#fff" fill-opacity=".6"/>
+</svg>
