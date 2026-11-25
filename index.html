@@ -36,6 +36,7 @@ img{display:block}
 .sbar{position:absolute;top:0;left:0;right:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;z-index:60;pointer-events:none;font:600 16px var(--ui)}
 .sbar .r{display:flex;gap:6px;align-items:center}
 .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#000;border-radius:20px;z-index:61}
+html.app,html.app body{background:#000;overflow:hidden}html.app #map,html.app .sbar,html.app .hind,html.app .island{display:none!important}html.app #stage{display:block!important;padding:0!important;min-height:0!important}html.app #phone{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;border-radius:0!important;box-shadow:none!important;transform:none!important;margin:0!important}
 .hind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#fff;z-index:90;pointer-events:none;opacity:.9}
 #views{position:absolute;inset:0;overflow:hidden;overflow:clip}
 .view{position:absolute;inset:0;background:#000;overflow:hidden;overflow:clip;display:flex;flex-direction:column;transition:transform .42s var(--ease),opacity .42s var(--ease),filter .42s}
@@ -1420,7 +1421,7 @@ document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.ta
 /* ================= boot ================= */
 S=freshState();
 // #home opens straight on the creator home (used by the Expo app), otherwise start at the splash
-if(location.hash==='#home'){S.role='creator';reset('home',{},'none');}
+if(location.hash==='#home'){document.documentElement.classList.add('app');S.role='creator';reset('home',{},'none');}
 else reset('splash',{},'none');
 </script>
 </body>
