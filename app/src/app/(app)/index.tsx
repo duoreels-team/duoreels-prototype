@@ -47,6 +47,10 @@ const IN_PROGRESS: Project[] = [
   { id: 'gym', title: 'Gym promo', img: 'gym', dur: 49, ver: 'Final', ed: 'J', due: '11.27' },
   { id: 'mf', title: 'Monthly favorites', img: 's24', dur: 103, ver: 'v2', ed: 'J', due: '11.24' },
 ];
+const GROUPS = [
+  { label: 'YOUR TURN', dot: Color.violet, items: IN_PROGRESS.filter((p) => p.tag) },
+  { label: 'WITH EDITORS', dot: Color.meta, items: IN_PROGRESS.filter((p) => !p.tag) },
+];
 const DONE: { title: string; img: Img; dur: number; date: string }[] = [
   { title: 'Latte afternoon', img: 'c1', dur: 95, date: '10.30' },
   { title: 'Market day', img: 'c2', dur: 71, date: '10.21' },
@@ -98,9 +102,15 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* one list: no gaps, no separate blocks */}
+          {/* one block, two groups: what needs you, then what editors are working on */}
           <View style={styles.list}>
-            {IN_PROGRESS.map((p, i) => (
+            {GROUPS.map((g, gi) => (
+              <View key={g.label}>
+                <View style={[styles.subsec, gi > 0 && styles.rowLine]}>
+                  <View style={[styles.subDot, { backgroundColor: g.dot }]} />
+                  <Text style={styles.subText}>{g.label} · {g.items.length}</Text>
+                </View>
+            {g.items.map((p, i) => (
               <Pressable key={p.id} onPress={() => soon(p.title)} style={({ pressed }) => [styles.row, i > 0 && styles.rowLine, pressed && { backgroundColor: Color.surfaceSelected }]}>
                 <View>
                   <Image source={IMG[p.img]} style={styles.thumb} contentFit="cover" />
@@ -122,6 +132,8 @@ export default function HomeScreen() {
                   <Icon name="more" size={20} color={Color.text2} />
                 </Pressable>
               </Pressable>
+            ))}
+              </View>
             ))}
             <Pressable onPress={() => soon('All projects')} style={[styles.row, styles.rowLine, { justifyContent: 'center' }]}>
               <Text style={styles.seeAll}>See all {IN_PROGRESS.length} in progress ›</Text>
@@ -191,6 +203,9 @@ const styles = StyleSheet.create({
   meta: { fontFamily: Font.regular, fontSize: 14, color: Color.meta },
   tag: { alignSelf: 'flex-start', marginTop: 4, height: 22, paddingHorizontal: 10, justifyContent: 'center', transform: [{ skewX: '-14deg' }] },
   tagText: { ...Type.tag, fontSize: 14, color: Color.black, transform: [{ skewX: '14deg' }] },
+  subsec: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 2 },
+  subDot: { width: 6, height: 6, borderRadius: 3 },
+  subText: { fontFamily: Font.semibold, fontSize: 13, letterSpacing: 1, color: Color.meta },
   avs: { flexDirection: 'row' },
   av: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Color.surface },
   avText: { fontFamily: Font.bold, fontSize: 11, color: Color.black },

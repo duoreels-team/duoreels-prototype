@@ -97,6 +97,10 @@ img{display:block}
 .row .tx{flex:1;min-width:0}
 .row .tx .meta{margin-top:2px}
 .rows{display:flex;flex-direction:column;gap:10px}
+.subsec{display:flex;align-items:center;gap:8px;padding:12px 14px 4px;font:600 13px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--meta)}
+.subsec.line{border-top:1px solid #2a2a2e;margin-top:2px;padding-top:14px}
+.subsec i{width:6px;height:6px;border-radius:50%}
+.subsec+.row{border-top:0!important}
 .mecard{display:block;width:100%;text-align:left;padding:16px;margin-top:22px}
 .mecard .mtop{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .mecard .mtop .tx{flex:1;display:flex;flex-direction:column}.mecard .mtop b{font:900 24px var(--disp);letter-spacing:.03em}
@@ -838,7 +842,7 @@ V.home=()=>{
   <div class="scroll home-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
    <button class="btn-main slant" data-act="go" data-to="newproject">${I('plus',20,2.6)} New project</button>
    <div class="sec" style="margin-top:24px"><span>In progress · ${prog.length}</span><button data-act="seeProg">See all ›</button></div>
-   <div class="list stag">${mine.map(homeRow).join('')}${rest.map(waitRow).join('')}<button class="row" data-act="seeProg" style="justify-content:center;gap:4px"><b class="lab">See all ${prog.length} in progress</b>${I('chev',16)}</button></div>
+   <div class="list stag">${mine.length?`<div class="subsec"><i style="background:var(--violet)"></i>Your turn · ${mine.length}</div>${mine.map(homeRow).join('')}`:''}${rest.length?`<div class="subsec line"><i style="background:var(--meta)"></i>With editors · ${rest.length}</div>${rest.map(waitRow).join('')}`:''}<button class="row" data-act="seeProg" style="justify-content:center;gap:4px"><b class="lab">See all ${prog.length} in progress</b>${I('chev',16)}</button></div>
    <button class="row" style="margin-top:16px" data-act="tab" data-to="market"><span style="color:var(--grey)">${I('bag',20)}</span><span class="tx lab">Need an editor? Find one in Marketplace</span>${I('chev',18)}</button>
    <div class="sec"><span>Done · ${done.length}</span><button data-act="allDone">See all ›</button></div>
    <div class="rail">${done.map(p=>`<button data-act="openProject" data-id="${p.id}"><div class="cv34" style="${bg(p.img)}"><span class="dur">${fmt(p.dur)}</span></div><div class="lab" style="margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div><div class="meta">${p.sub.split(' · ')[1]||''}</div></button>`).join('')}</div>
