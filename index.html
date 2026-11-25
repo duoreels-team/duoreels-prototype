@@ -1107,12 +1107,12 @@ V['ed-home']=()=>{const E=S.ed;const left=E.todo.filter(x=>!x.done).length;const
   {img:'wed',dur:138,title:'Wedding teaser',l2:'v1 · Maya · due 12.2'}];
  const big=r=>`<div class="prow big" ${r.go?`data-act="go" data-to="${r.go}"`:`data-act="edSoon"`} role="button" tabindex="0"><div class="cv34" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><div class="tx"><b>${r.title}</b><span class="meta" style="font-size:14px">${r.l2}</span>${r.tag?`<span class="tag ${r.tag[1]}">${r.tag[0]}</span>`:''}</div><button class="ib" style="width:30px;align-self:flex-start;margin-top:2px;color:var(--grey)" aria-label="More">${I('more',20)}</button></div>`;
  const small=r=>`<div class="row wrow" data-act="edSoon" role="button" tabindex="0"><div class="cv34 sm" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><span class="tx"><b class="lab">${r.title}</b><div class="meta">${r.l2}</div></span>${av('M',24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" aria-label="More">${I('more',20)}</button></div>`;
- return {tab:'ed-home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span class="wm" style="flex:1">DUOREELS</span><button class="ib" aria-label="Activity">${I('bell')}</button></div></div>
- <div class="scroll" style="padding-top:101px;padding-bottom:110px"><div class="pad">
+ return {tab:'ed-home',html:`<div class="fixedtop"><div style="display:flex;align-items:center;height:54px;padding:0 10px 0 16px"><span style="flex:1;display:flex;align-items:center"><button data-act="accounts" aria-label="Switch account" style="display:flex;align-items:center;height:44px;margin-left:-6px;padding:0 6px">${MARK(30)}</button></span><button class="ib" data-act="go" data-to="activity" aria-label="Messages">${I('bell')}</button></div></div>
+ <div class="scroll mk-scroll" style="padding-top:101px;padding-bottom:110px"><div class="mk-blinds" aria-hidden="true"></div><div class="pad">
   ${!E.accepted?`<button class="card slide24" style="width:100%;text-align:left;padding:14px;display:flex;gap:12px;align-items:center;background:linear-gradient(120deg,#1C1C1E,#1a1430)" data-act="go" data-to="join">${av('M',40)}<span class="tx" style="flex:1"><b class="lab" style="font-size:15px">Maya invited you</b><div class="meta">${E.invite.title} · $${E.invite.price} · 3 rounds</div></span>${I('chev',18)}</button>`:''}
   <div class="sec" style="margin-top:24px"><span>In progress · ${rows.length}</span><button data-act="edSoon">See all ›</button></div>
-  <div class="stag">${rows.filter(r=>r.btn).map(big).join('')}</div>
-  <div class="list" style="margin-top:18px">${rows.filter(r=>!r.btn).map(small).join('')}</div>
+  <div class="list stag">${rows.filter(r=>r.btn).map(r=>`<div class="row wrow" ${r.go?`data-act="go" data-to="${r.go}"`:'data-act="edSoon"'} role="button" tabindex="0"><div class="cv34 sm" style="${bg(r.img)}"><span class="cut">${mmss(r.dur)}</span></div><span class="tx"><b class="lab">${r.title}</b><div class="meta">${r.l2}</div>${r.tag?`<span class="tag ${r.tag[1]}">${r.tag[0]}</span>`:''}</span>${av('M',24)}<button class="ib" style="width:30px;margin-right:-6px;color:var(--grey)" data-act="edSoon" aria-label="More">${I('more',20)}</button></div>`).join('')}</div>
+  <div class="list" style="margin-top:12px">${rows.filter(r=>!r.btn).map(small).join('')}</div>
   <div class="sec"><span>Done · ${doneE.length}</span><span class="meta" style="text-transform:none;letter-spacing:0">$412 this month</span></div>
   <div class="rail">${doneE.map(p=>`<button data-act="edSoon"><div class="cv34" style="${bg(p.img)}"><span class="dur">${fmt(p.dur)}</span></div><div class="lab" style="margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div><div class="meta">Paid ${(p.sub.split(' · ')[1]||'')}</div></button>`).join('')}</div></div></div>`};};
 V.join=()=>{const E=S.ed.invite;return {html:`<div class="scroll"><div class="topbar"><button class="ib" data-act="back" aria-label="Close">${I('close')}</button></div><div class="pad">
@@ -1176,7 +1176,7 @@ const act={
  signin(){go('profile');},email(){go('email');},codeDone(){if(stack[stack.length-1]?.name==='email')go('profile');},
  pickRole(el){S.role=el.dataset.r;$$('.roles button').forEach(b=>b.classList.toggle('on',b===el));},
  photo(el){el.innerHTML='';el.style.cssText+=`;${bg('c3')};background-size:cover;background-position:50% 20%`;},
- profileDone(){const n=$('#nick');if(n&&n.value.trim())S.me=n.value.trim();reset(S.role==='editor'?'ed-home':'home',{},'up');setTimeout(()=>toast(`Welcome, ${S.role==='editor'?'Leo':S.me}`),500);},
+ profileDone(){const n=$('#nick');if(n&&n.value.trim())S.me=n.value.trim();reset(S.role==='editor'?'ed-home':'home',{},'up');},
  openProject(el,ev){go('project',{id:el.dataset.id});},
  openReview(el,ev){ev.stopPropagation();const p=proj(el.dataset.id);if(!p.v)return;go('review',{id:p.id});},
  more(el,ev){ev.stopPropagation();settingsSheet(el.dataset.id);},
