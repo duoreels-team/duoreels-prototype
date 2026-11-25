@@ -89,7 +89,7 @@ html.app,html.app body{background:#000;overflow:hidden}html.app #map,html.app .s
 .seg button::before{content:"";position:absolute;inset:0;z-index:-1;border:1px solid #3a3a42;border-radius:3px;transform:skewX(-14deg);transition:background .25s,border-color .25s}
 .seg button.on{color:#000}
 .seg button.on::before{background:var(--violet);border-color:var(--violet)}
-.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--c);color:#000;font-weight:700;flex:none;box-shadow:0 0 0 2px #000}
+.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--c) center/cover;color:#000;font-weight:700;flex:none}
 .avs{display:flex}.avs .av+.av{margin-left:-7px}
 .ib{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;transition:background .2s}
 .ib:active{background:#1C1C1E}
@@ -180,6 +180,12 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .toast .check{width:24px;height:24px}
 .toast button{flex:none;height:36px;padding:0 14px;border-radius:999px;background:var(--control);color:var(--violet);font:600 15px var(--ui)}
 .toast.out{animation:toastOut .3s ease both}
+.toast,#banner .in{background:rgba(24,24,27,.86)!important;backdrop-filter:blur(24px) saturate(170%)!important;-webkit-backdrop-filter:blur(24px) saturate(170%)!important;border:0!important;border-radius:16px!important;box-shadow:0 14px 40px rgba(0,0,0,.55)!important}
+.toast .check{width:26px;height:22px;border-radius:3px;background:var(--violet);transform:skewX(-14deg);color:#000}
+.toast .check svg{transform:skewX(14deg)}
+.toast button{position:relative;isolation:isolate;background:transparent!important;border-radius:0!important;color:#fff!important;font:600 14px var(--ui)!important;height:32px!important;padding:0 14px!important}
+.toast button::before{content:"";position:absolute;inset:0;z-index:-1;border:1px solid #4a4a52;border-radius:3px;transform:skewX(-14deg)}
+#banner .in{position:relative;overflow:hidden;padding-left:16px!important}
 @keyframes toastIn{from{opacity:0;transform:translateY(-120%)}to{opacity:1;transform:none}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-120%)}}
 #banner{position:absolute;top:50px;left:10px;right:10px;z-index:85;transform:translateY(-220px);visibility:hidden;transition:transform .5s var(--ease),visibility 0s .5s}
@@ -368,7 +374,7 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .player.e.v .vid{width:auto;aspect-ratio:9/16}
 .player.e.h .vid img:first-child{object-position:50% 32%}
 .player.e .drawov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:none!important}
-.player.e .drawc{width:100%;height:100%;outline:2px solid var(--violet);outline-offset:-2px}
+.player.e .drawc{width:100%;height:100%}
 #strip .rbar{position:absolute;bottom:-8px;height:4px;border-radius:2px;background:var(--violet);pointer-events:none}
 .rngbox{position:absolute;top:-4px;bottom:-4px;border:3px solid var(--violet);border-radius:6px;background:rgba(142,108,255,.22);box-shadow:0 0 18px rgba(142,108,255,.6);z-index:3}
 .hnd{position:absolute;top:50%;left:-11px;width:18px;height:42px;margin-top:-21px;border-radius:6px;background:var(--violet);cursor:ew-resize;touch-action:none}
@@ -378,6 +384,8 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .voicebar.e{margin:14px 12px 0}
 .vmic{width:40px;height:40px;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;flex:none;animation:vpulse 1.4s ease-in-out infinite}
 @keyframes vpulse{50%{box-shadow:0 0 0 8px rgba(255,255,255,.18)}}
+.dsws{display:flex;gap:10px;margin-top:6px}.dsw{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}.dsw.on{box-shadow:0 0 0 2px #000,0 0 0 4px #fff}
+.tools .tsep{width:1px;align-self:stretch;margin:10px 4px;background:#2a2a2e}
 .drawtools{display:flex;align-items:center;gap:6px;margin:14px 12px 0;padding:8px 10px;border-radius:14px;background:var(--surface)}
 .drawtools>button:not(.btn-card):not(.btn-sec){display:flex;flex-direction:column;align-items:center;gap:3px;width:48px;padding:5px 0;border-radius:9px;font:500 14px var(--ui);color:#ccc}
 .drawtools>button.on{background:var(--violet);color:#000}
@@ -406,7 +414,7 @@ textarea.field{resize:none;min-height:92px;line-height:1.45}
 .player.f .vid{height:100%;aspect-ratio:9/16;border-radius:0;background:#000;isolation:isolate}
 .player.f .vid>img:first-child{display:block;width:calc(100% + 2px);height:calc(100% + 2px);margin:-1px}
 .player.f .drawov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:none!important}
-.player.f .drawc{width:100%;height:100%;outline:2px solid var(--violet);outline-offset:-2px}
+.player.f .drawc{width:100%;height:100%}
 .pbtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;transition:opacity .25s}
 .player.playing .pbtn{opacity:0}
 .rvfix .timerow{flex:none;display:flex;align-items:center;gap:6px;padding:6px 12px 0 16px}
@@ -641,7 +649,7 @@ const IMG=k=>`img/${k}.jpg`;
 const mmss=t=>{t=Math.round(t||0);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
 const bg=k=>`background-image:url('${IMG(k)}')`;
 const PPL={M:{n:'Maya',c:'#8E6CFF'},L:{n:'Leo',c:'#3D8BFF'},J:{n:'Jon',c:'#FF9A4D'},F:{n:'Fay',c:'#2EC4B6'},K:{n:'Kai',c:'#C08BFF'},S:{n:'Sara',c:'#2EC4B6'},D:{n:'Dani',c:'#2EC4B6'}};
-const av=(k,s=24)=>`<span class="av" style="--c:${PPL[k].c};width:${s}px;height:${s}px;font-size:${Math.round(s*.45)}px">${k}</span>`;
+const av=(k,s=24)=>{const im=k==='M'&&typeof S!=='undefined'&&S&&S.meImg;return `<span class="av" style="--c:${PPL[k].c};width:${s}px;height:${s}px;font-size:${Math.round(s*.45)}px${im?`;background-image:url('${IMG(im)}')`:''}">${im?'':k}</span>`;};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=t=>{t=Math.max(0,Math.round(t));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`};
 const $=(s,r=document)=>r.querySelector(s);
@@ -759,7 +767,7 @@ function toast(text,undo,icon=true){
   host.appendChild(t); setTimeout(hide,2800);
 }
 let bannerFn=null;
-function banner(html,fn){ const b=$('#banner'); $('.in',b).innerHTML=html; bannerFn=fn; b.classList.add('show'); tick(); clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove('show'),4200); }
+function banner(html,fn){ const th=$('#toast-host');if(th)th.innerHTML=''; const b=$('#banner'); $('.in',b).innerHTML=html; bannerFn=fn; b.classList.add('show'); tick(); clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove('show'),4200); }
 
 /* ================= common pieces ================= */
 const back_=(extra='')=>`<button class="ib" data-act="back" aria-label="Back">${I('back')}</button>`;
@@ -933,7 +941,7 @@ V.review=({id})=>{const p=proj(id);
   <div id="bottom"></div></div>`,
   mount(el){drawPins();drawBottom();setT(RV.t);
    if(!canNoteP(p)&&!p.asks&&p.status!=='done'&&S.role!=='editor'){RV.cd=10;RV.cdt=setInterval(()=>{RV.cd--;const c=$('#acd');if(c)c.textContent=RV.cd;if(RV.cd<=0){clearInterval(RV.cdt);if(rvP()===p&&stack[stack.length-1]?.params?.id===p.id)act.simUpload({dataset:{id:p.id}});}},1000);}
-   $('#vid',el).addEventListener('click',e=>{ if(e.target.closest('.pbtn')||e.target.closest('.ann'))return; if(RV.mode==='draw'||RV.cmp) return; if(!canNoteP(p)){act.playpause();return;} const r=$('#vid',el).getBoundingClientRect();RV.tap={x:Math.round((e.clientX-r.left)/r.width*100),y:Math.round((e.clientY-r.top)/r.height*100)}; addNoteAt(); });
+   $('#vid',el).addEventListener('click',e=>{ if(e.target.closest('.pbtn')||e.target.closest('.ann'))return; if(RV.mode==='draw'||RV.cmp) return; if(!p.v||p.status==='done'){act.playpause();return;} const r=$('#vid',el).getBoundingClientRect();RV.tap={x:Math.round((e.clientX-r.left)/r.width*100),y:Math.round((e.clientY-r.top)/r.height*100)}; addNoteAt(); });
    const strip=$('#strip',el);let drag=null;const x2t=e=>{const r=strip.getBoundingClientRect();return Math.min(1,Math.max(0,(e.clientX-r.left)/r.width))*p.dur;};
    const mv=e=>{if(!drag)return;const t=Math.round(x2t(e));if(drag==='seek'){setT(x2t(e));return;}if(drag==='a')RV.ra=Math.min(t,RV.rb-1);else RV.rb=Math.max(t,RV.ra+1);drawRange();};
    strip.addEventListener('pointerdown',e=>{drag=(e.target.dataset&&e.target.dataset.h)||'seek';strip.setPointerCapture(e.pointerId);mv(e);});strip.addEventListener('pointermove',mv);strip.addEventListener('pointerup',()=>drag=null);
@@ -961,7 +969,7 @@ function drawBottom(){const p=rvP();const b=$('#bottom'),dc=$('#decide');if(!b)r
  if(RV.mode==='voice') d=`<div class="voicebar f"><span class="vmic">${I('mic',20)}</span><div style="display:flex;flex-direction:column;gap:2px"><b class="lab">Talking to ${ed}</b><span class="mono" style="font-size:13px" id="vt">Listening · 0:00</span></div><div class="wave">${Array.from({length:14},(_,i)=>`<i style="animation-delay:${(i*73)%600}ms"></i>`).join('')}</div><button class="btn-card" style="height:34px;font-size:16px" data-act="voiceStop">Done</button></div>`;
  else if(RV.mode==='voiceDone') d=dbar('3 notes from your voice','Pinned on the timeline · check them',`<button class="dbtn" data-act="openNotes">Check</button>`,I('spark',20),1);
  else if(RV.mode==='range') d=dbar(`<span id="rlab">${fmt(RV.ra)} – ${fmt(RV.rb)} · ${RV.rb-RV.ra} s</span>`,'Drag the edges to set the part',`<button class="dbtn" data-act="rangeAdd">Add</button>`,I('range',20),'data-act="rangeCancel"');
- else if(RV.mode==='draw') d=dbar(`Draw on ${fmt(RV.t)}`,'Circle it, point at it, scribble',`<button class="dbtn" data-act="drawDone">Next</button>`,I('pen',20),'data-act="drawCancel"');
+ else if(RV.mode==='draw') d=dbar(`Draw on ${fmt(RV.t)}`,`<span class="dsws">${['#FFFFFF','#8E6CFF','#FFC94D','#3DE0A0','#3D8BFF','#FF6B6B'].map(c=>`<button class="dsw ${(RV.color||'#FFFFFF')===c?'on':''}" style="background:${c}" data-act="drawColor" data-c="${c}" aria-label="Color"></button>`).join('')}</span>`,`<button class="dbtn" data-act="drawDone">Next</button>`,I('pen',20),'data-act="drawCancel"');
  else if(p.asks) d=dbar(`${ed} asks for 1 more day`,`New due ${dueD(DNEXT[p.due])}, not ${dueD(p.due)}`,`<button class="dbtn" data-act="askYes" data-id="${p.id}">Accept</button>`,p.ed,`data-act="askNo" data-id="${p.id}"`);
  else if(p.status==='done') d=dbar(`v${p.v} is final`,`$${(p.price||75)/2} sent to ${ed}`,`<button class="ib" style="width:36px;color:var(--grey)" data-act="download" data-id="${p.id}" aria-label="Save">${I('dl',20)}</button><button class="dbtn" data-act="go" data-to="post" data-id="${p.id}">Post</button>`,'M');
  else if(!p.v) d='';
@@ -970,8 +978,8 @@ function drawBottom(){const p=rvP();const b=$('#bottom'),dc=$('#decide');if(!b)r
  else d=dbar(p.v>=p.rounds?`Last round · v${p.v}`:'No new notes',p.v>=p.rounds?'Approve it, or send notes for one more round':`Happy with v${p.v}?`,`<button class="dbtn" data-act="approve">Approve</button>`,'M',1);
  dc.innerHTML=d;
  // toolbar
- if(RV.mode==='draw'){b.innerHTML=`<div class="tools">${[['pen','Pen'],['line','Arrow'],['circle','Circle']].map(([k,l])=>`<button class="tl ${RV.tool===k?'on':''}" data-act="drawTool" data-k="${k}">${k==='circle'?'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="8" ry="6.5"/></svg>':k==='line'?'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 19 19 5M11 5h8v8"/></svg>':I('pen',24,1.6)}${l}</button>`).join('')}<button class="tl" data-act="drawUndo">${I('undo',24,1.6)}Undo</button></div>`;return;}
- b.innerHTML=`<div class="tools">${[['mic','Voice','voice'],['chat','Text','addNote'],['pen','Draw','draw'],['range','Range','range'],['cover','Cover','coverpick']].map(([i,l,a])=>`<button class="tl ${RV.mode==='voice'&&a==='voice'?'on':''}" data-act="${a}" data-id="${p.id}" ${(!can&&a!=='coverpick')||!p.v?'disabled':''}>${I(i,24,1.6)}${l}</button>`).join('')}<button class="notesbtn" data-act="openNotes">Notes <span class="badge${n?'':' zero'}">${n}</span></button></div>`;}
+ if(RV.mode==='draw'){b.innerHTML=`<div class="tools"><button class="tl ${RV.tool==='pen'?'on':''}" data-act="drawTool" data-k="pen">${I('pen',24,1.6)}Pen</button><button class="tl ${RV.tool==='line'?'on':''}" data-act="drawTool" data-k="line">${'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 19 19 5"/></svg>'}Line</button><button class="tl ${RV.tool==='arrow'?'on':''}" data-act="drawTool" data-k="arrow">${'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 19 19 5M11 5h8v8"/></svg>'}Arrow</button><button class="tl ${RV.tool==='circle'?'on':''}" data-act="drawTool" data-k="circle">${'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="8" ry="6.5"/></svg>'}Circle</button><button class="tl ${RV.tool==='box'?'on':''}" data-act="drawTool" data-k="box">${'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4.5" y="6.5" width="15" height="11" rx="1.5"/></svg>'}Box</button><span class="tsep"></span><button class="tl" data-act="drawUndo">${I('undo',24,1.6)}Undo</button></div>`;return;}
+ b.innerHTML=`<div class="tools">${[['mic','Voice','voice'],['chat','Text','addNote'],['pen','Draw','draw'],['range','Range','range'],['cover','Cover','coverpick']].map(([i,l,a])=>`<button class="tl ${RV.mode==='voice'&&a==='voice'?'on':''}" data-act="${a}" data-id="${p.id}" ${!p.v?'disabled':''}>${I(i,24,1.6)}${l}</button>`).join('')}<button class="notesbtn" data-act="openNotes">Notes <span class="badge${n?'':' zero'}">${n}</span></button></div>`;}
 function addNoteAt(att,draft){const p=rvP();if(RV.playing)act.playpause();const pd=RV.pend||{};const t=draft?draft.t:(pd.t!=null?pd.t:Math.round(RV.t));const b=draft?draft.b:pd.b;att=att||pd.att;
  const prev=pd.draw?`<div class="drawthumb" style="margin:0"><img src="${IMG(p.vimg)}" alt=""><img src="${pd.draw}" alt=""></div>`:`<div class="thumb" style="${bg(p.vimg)};width:46px;height:62px;border-radius:4px"></div>`;
  openSheet(`<div style="display:flex;align-items:center;gap:10px;margin:4px 0 12px">${av('M',26)}<b class="lab" style="font-size:15px;flex:1">${draft?'Edit note · ':'Note at '}${fmt(t)}${b?` – ${fmt(b)}`:''}</b>${att?`<span class="att" style="margin:0">${att}</span>`:''}</div>
@@ -1063,7 +1071,7 @@ V.thread=({k='L'})=>{const m=S.msgs[k]||[];return {html:`<div style="padding-top
 
 /* ---- me ---- */
 V.me=()=>{const ed=S.role==='editor';return {tab:'me',html:`<div class="scroll" style="padding-bottom:110px"><div class="pad" style="padding-top:20px">
-  <div style="display:flex;gap:14px;align-items:center" class="slide24">${av(ed?'L':'M',64)}<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 class="t28">${ed?'Leo':S.me}</h2><button class="chip" style="height:26px;font-size:13px;padding:0 12px" data-act="accounts">Switch account</button></div><div class="meta">${ed?'Editor':'Creator'} · Los Angeles</div></div></div>
+  <div style="display:flex;gap:14px;align-items:center" class="slide24"><button data-act="meAvatar" aria-label="Change photo" style="position:relative;flex:none">${av(ed?'L':'M',64)}<span style="position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;background:var(--violet);color:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #000">${I('camera',13,2)}</span></button><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 class="t28">${ed?'Leo':S.me}</h2><button class="chip" style="height:26px;font-size:13px;padding:0 12px" data-act="accounts">Switch account</button></div><div class="meta">${ed?'Editor':'Creator'} · Los Angeles</div></div></div>
   <button class="card mecard" data-act="go" data-to="plan">
    <div class="mtop"><span class="tx"><b>VIP</b><span class="meta">Renews 12.4</span></span><span class="mlink">Plan ${I('chev',16)}</span></div>
    <div class="mrow"><span class="meta">Storage</span><span class="meta"><b>38</b> of 100 GB</span></div><div class="bar"><i style="width:38%"></i></div>
@@ -1247,7 +1255,7 @@ const act={
  rangeCancel(){RV.mode=null;drawBottom();},
  rangeAdd(){RV.pend={t:RV.ra,b:RV.rb,att:'Range'};RV.mode=null;drawBottom();addNoteAt();},
  aiNote(){const t=$('#nt');if(!t.value)t.value='Hold this shot 2 s longer, it feels rushed.';else t.value=t.value.replace(/^./,c=>c.toUpperCase()).replace(/\s*$/,'.').replace(/\.\.$/,'.');},
- saveNote(el){const p=rvP();const v=($('#nt').value||'').trim()||'Keep this moment.';if(el.dataset.edit){const d=p.drafts.find(x=>x.id==el.dataset.edit);if(d)d.text=v;closeSheet();drawBottom();toast('Note saved');return;}const pd=RV.pend||{};const t=+el.dataset.t;const na=RV.natt||{},tp=RV.tap||{};p.drafts.push({id:Date.now(),t,b:pd.b,draw:pd.draw,text:v,att:na.att||el.dataset.att||null,img:na.img,dur:na.dur,link:na.link,x:tp.x??(pd.draw?55:50),y:tp.y??(pd.draw?45:30)});RV.natt=null;RV.tap=null;p.drafts.sort((x,y)=>x.t-y.t);p.pins.push({t,by:'M'});RV.pend=null;closeSheet();drawPins();drawBottom();setT(t);tick();},
+ saveNote(el){const p=rvP();const v=($('#nt').value||'').trim()||'Keep this moment.';if(el.dataset.edit){const d=p.drafts.find(x=>x.id==el.dataset.edit);if(d)d.text=v;closeSheet();drawBottom();toast('Note saved');return;}const pd=RV.pend||{};const t=+el.dataset.t;const na=RV.natt||{},tp=RV.tap||{};p.drafts.push({id:Date.now(),t,b:pd.b,draw:pd.draw,text:v,att:na.att||el.dataset.att||null,img:na.img,dur:na.dur,link:na.link,x:tp.x??(pd.draw?55:50),y:tp.y??(pd.draw?45:30)});RV.natt=null;RV.tap=null;p.drafts.sort((x,y)=>x.t-y.t);p.pins.push({t,by:'M'});RV.pend=null;closeSheet();drawPins();drawBottom();setT(t);tick();if(!canNoteP(p))toast(`Note saved · goes to ${edName(p)} with your next review`);},
  openNotes(){if(RV&&RV.mode==='voiceDone'){RV.mode=null;drawBottom();}notesSheet('send');},
  details(el){detailsSheet(el.dataset.id);},
  detailRow(el){const a=el.dataset.a,id=el.dataset.id;closeSheet(true);setTimeout(()=>act[a]({dataset:{id}}),a==='versions'||a==='money'||a==='people'?380:0);},
@@ -1272,13 +1280,13 @@ const act={
  voice(){RV.mode='voice';drawBottom();if(!RV.playing)act.playpause();let s=0;RV.vt=setInterval(()=>{s++;const e=$('#vt');if(e)e.textContent='Listening · '+fmt(s);},1000);
   RV.vto=[setTimeout(()=>voicePin(6,'Slower here, let it breathe.'),1200),setTimeout(()=>voicePin(17,'Brighter on the window light.'),2600),setTimeout(()=>voicePin(27,'Cut this part, too long.'),4000)];},
  voiceStop(){clearInterval(RV.vt);(RV.vto||[]).forEach(clearTimeout);if(RV.playing)act.playpause();RV.mode='voiceDone';drawBottom();},
- draw(){const p=rvP();if(RV.playing)act.playpause();RV.mode='draw';RV.tool=RV.tool||'pen';drawBottom();setT(RV.t);const v=$('#vid');const c=document.createElement('canvas');c.className='drawc';c.width=v.clientWidth*2;c.height=v.clientHeight*2;v.appendChild(c);const g=c.getContext('2d');g.lineWidth=9;g.lineCap='round';g.lineJoin='round';g.strokeStyle='#8E6CFF';g.shadowColor='rgba(142,108,255,.9)';g.shadowBlur=10;let d=false,s0=null,snap=null;RV.strokes=[];
+ draw(){const p=rvP();if(RV.playing)act.playpause();RV.mode='draw';RV.tool=RV.tool||'pen';drawBottom();setT(RV.t);const v=$('#vid');const c=document.createElement('canvas');c.className='drawc';c.width=v.clientWidth*2;c.height=v.clientHeight*2;v.appendChild(c);const g=c.getContext('2d');g.lineWidth=9;g.lineCap='round';g.lineJoin='round';RV.color=RV.color||'#FFFFFF';g.shadowColor='rgba(0,0,0,.35)';g.shadowBlur=6;let d=false,s0=null,snap=null;RV.strokes=[];
   const pt=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)*2,(e.clientY-r.top)*2]};
   c.addEventListener('click',e=>e.stopPropagation());
-  c.addEventListener('pointerdown',e=>{e.stopPropagation();d=true;c.setPointerCapture(e.pointerId);snap=g.getImageData(0,0,c.width,c.height);RV.strokes.push(snap);s0=pt(e);if(RV.tool==='pen'){g.beginPath();g.moveTo(...s0);}});
-  c.addEventListener('pointermove',e=>{if(!d)return;const q=pt(e);if(RV.tool==='pen'){g.lineTo(...q);g.stroke();return;}g.putImageData(snap,0,0);g.beginPath();if(RV.tool==='circle'){g.ellipse((s0[0]+q[0])/2,(s0[1]+q[1])/2,Math.max(2,Math.abs(q[0]-s0[0])/2),Math.max(2,Math.abs(q[1]-s0[1])/2),0,0,Math.PI*2);g.stroke();}else{g.moveTo(...s0);g.lineTo(...q);g.stroke();const a=Math.atan2(q[1]-s0[1],q[0]-s0[0]),L=30;g.beginPath();g.moveTo(...q);g.lineTo(q[0]-L*Math.cos(a-.5),q[1]-L*Math.sin(a-.5));g.moveTo(...q);g.lineTo(q[0]-L*Math.cos(a+.5),q[1]-L*Math.sin(a+.5));g.stroke();}});
+  c.addEventListener('pointerdown',e=>{e.stopPropagation();d=true;c.setPointerCapture(e.pointerId);snap=g.getImageData(0,0,c.width,c.height);RV.strokes.push(snap);s0=pt(e);g.strokeStyle=RV.color;if(RV.tool==='pen'){g.beginPath();g.moveTo(...s0);}});
+  c.addEventListener('pointermove',e=>{if(!d)return;const q=pt(e);if(RV.tool==='pen'){g.lineTo(...q);g.stroke();return;}g.putImageData(snap,0,0);g.beginPath();if(RV.tool==='box'){g.rect(Math.min(s0[0],q[0]),Math.min(s0[1],q[1]),Math.abs(q[0]-s0[0]),Math.abs(q[1]-s0[1]));g.stroke();}else if(RV.tool==='line'){g.moveTo(...s0);g.lineTo(...q);g.stroke();}else if(RV.tool==='circle'){g.ellipse((s0[0]+q[0])/2,(s0[1]+q[1])/2,Math.max(2,Math.abs(q[0]-s0[0])/2),Math.max(2,Math.abs(q[1]-s0[1])/2),0,0,Math.PI*2);g.stroke();}else{g.moveTo(...s0);g.lineTo(...q);g.stroke();const a=Math.atan2(q[1]-s0[1],q[0]-s0[0]),L=30;g.beginPath();g.moveTo(...q);g.lineTo(q[0]-L*Math.cos(a-.5),q[1]-L*Math.sin(a-.5));g.moveTo(...q);g.lineTo(q[0]-L*Math.cos(a+.5),q[1]-L*Math.sin(a+.5));g.stroke();}});
   c.addEventListener('pointerup',()=>d=false);RV.canvas=c;},
- drawTool(el){RV.tool=el.dataset.k;$$('.drawtools [data-act=drawTool]').forEach(b=>b.classList.toggle('on',b===el));},
+ drawTool(el){RV.tool=el.dataset.k;$$('[data-act=drawTool]').forEach(b=>b.classList.toggle('on',b===el));},
  drawUndo(){const s=RV.strokes&&RV.strokes.pop();if(s)RV.canvas.getContext('2d').putImageData(s,0,0);},
  drawCancel(){RV.mode=null;RV.canvas&&RV.canvas.remove();drawBottom();setT(RV.t);},
  drawDone(){const data=RV.canvas?RV.canvas.toDataURL():null;RV.canvas&&RV.canvas.remove();RV.mode=null;drawBottom();RV.pend={t:Math.round(RV.t),draw:data,att:'Drawing'};addNoteAt();},
@@ -1375,6 +1383,9 @@ Object.assign(act,{
  info(el){openSheet(`<h3 class="t20" style="margin:4px 0 8px">${el.dataset.t}</h3><p class="meta" style="margin:0 0 6px;font-size:15px">${el.dataset.d}</p><button class="btn-sec" style="width:100%;margin-top:14px" data-act="closeSheet">OK</button>`);},
  npNewType(el){if(!NP.types)NP.types=[];toast('Added a new type: Tutorial');},
  selectMode(){openSheet(`<h3 class="t20" style="margin:4px 0 12px">Select projects</h3><div class="list"><button class="row" data-act="download">${I('dl',20)}<span class="tx"><b class="lab" style="font-size:15px">Download finals</b><div class="meta">All done projects</div></span>${I('chev',18)}</button><button class="row" data-act="closeSheet">${I('trash',20)}<span class="tx"><b class="lab" style="font-size:15px">Clear old versions</b><div class="meta">Frees 5 GB</div></span>${I('chev',18)}</button></div>`);},
+ meAvatar(){const opts=['s01','s02','s03','s04','s05','s06'];openSheet(`<h3 class="t20" style="margin:4px 0 4px">Profile photo</h3><p class="meta" style="margin:0 0 14px">Editors see it on every project.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${opts.map(o=>`<button data-act="meAvatarSet" data-i="${o}" style="aspect-ratio:1;border-radius:50%;background:url('${IMG(o)}') center/cover;${S.meImg===o?'box-shadow:0 0 0 3px var(--violet)':''}" aria-label="Use this photo"></button>`).join('')}</div><div class="list" style="margin-top:16px"><button class="row" data-act="meAvatarSet" data-i="s07">${I('camera',20)}<span class="tx"><b class="lab" style="font-size:15px">Take a photo</b></span>${I('chev',18)}</button><button class="row" data-act="meAvatarSet" data-i="">${I('close',20)}<span class="tx"><b class="lab" style="font-size:15px">Use my color</b></span></button></div>`);},
+ meAvatarSet(el){S.meImg=el.dataset.i||null;closeSheet();refresh();toast(S.meImg?'Photo updated':'Back to your color');},
+ drawColor(el){RV.color=el.dataset.c;$$('.dsw').forEach(b=>b.classList.toggle('on',b===el));},
  seeProg(){S.filter={status:'progress',types:[],sort:'Newest'};go('all');},
  editDraft(el){const p=rvP();const d=p.drafts.find(x=>x.id==el.dataset.nid);if(!d)return;closeSheet();setTimeout(()=>addNoteAt(d.att,d),420);},
  replyNote(el){const p=rvP();const d=p.all.find(x=>x.id==el.dataset.nid);openSheet(`<div style="display:flex;gap:10px;align-items:center;margin:4px 0 10px">${av(d.by,26)}<b class="lab" style="font-size:15px">Reply to ${d.by==='M'?'your note':PPL[d.by].n} · ${fmt(d.t)}</b></div><div class="card t15" style="padding:12px;background:#2C2C30;margin-bottom:10px">${esc(d.text)}</div><textarea class="field" id="rt2" style="min-height:70px" placeholder="Write a reply"></textarea><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="ib" style="background:var(--violet);color:#000;border-radius:50%" data-act="sendReply" data-nid="${d.id}" aria-label="Send reply">${I('up',22,2.4)}</button></div>`,b=>setTimeout(()=>$('#rt2',b).focus(),350));},
