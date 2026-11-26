@@ -1295,10 +1295,9 @@ const act={
   p.newV=false;p.turn='them';p.sub=`${edName(p)} is on v${p.v+1}`;closeSheet();drawBottom();
   S.activity.forEach(a=>{if(a.act&&a.act[2]===p.id)a.unread=false;});S.inbox.forEach(m=>{if(m.id===p.id)m.u=0;});
   toast(`${n} note${n>1?'s':''} sent to ${edName(p)}`,()=>{p.drafts=sent;sent.forEach(()=>p.all.shift());p.newV=true;p.turn='me';p.sub=`v${p.v} to review`;refresh();});refresh();},
- approve(){const p=rvP()||proj('mr');const ed=edName(p),pay=(p.price||75)/2;openSheet(`<span class="tag violet">Approve v${p.v}</span><h3 class="t28" style="margin:14px 0 6px">Make v${p.v} the final?</h3>
-  <div class="list" style="margin-top:12px"><div class="row"><span class="tx">You pay ${ed} now</span><b class="lab">$${pay}</b></div><div class="row"><span class="tx">You get</span><b class="lab" style="text-align:right">Final video, no watermark</b></div><div class="row"><span class="tx">Project</span><b class="lab">Moves to Done</b></div></div>
-  <p class="meta" style="margin:12px 0 0">Can’t be undone. Not ready? Choose Not yet and send notes${p.round<p.rounds?'':' for an extra round ($'+Math.round(pay/2)+')'}.</p>
-  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn-main" style="flex:1" data-act="approveYes">Approve</button><button class="btn-sec" data-act="approveNo">Not yet</button></div>`);},
+ approve(){const p=rvP()||proj('mr');const ed=edName(p),pay=(p.price||75)/2;openSheet(`<h3 class="t20" style="margin:2px 0 8px">Make v${p.v} the final?</h3>
+  <p class="meta" style="margin:0;font-size:15px;line-height:1.45"><b style="color:#fff;font-weight:600">You pay ${ed} $${pay} now</b> and get the final video. The project moves to Done. Can’t be undone.</p>
+  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn-main" style="flex:1" data-act="approveYes">Approve</button><button class="btn-sec" style="flex:1" data-act="approveNo">Keep reviewing</button></div>`);},
  approveYes(){const p=rvP()||proj('mr');p.status='done';p.newV=false;p.turn='them';p.sub='Approved · Nov 9';closeSheet();tick();refresh();setTimeout(()=>toast(`Approved · $${(p.price||75)/2} paid to ${edName(p)} · final is ready to download`),300);},
  voice(){RV.mode='voice';drawBottom();if(!RV.playing)act.playpause();let s=0;RV.vt=setInterval(()=>{s++;const e=$('#vt');if(e)e.textContent='Listening · '+fmt(s);},1000);
   RV.vto=[setTimeout(()=>voicePin(6,'Slower here, let it breathe.'),1200),setTimeout(()=>voicePin(17,'Brighter on the window light.'),2600),setTimeout(()=>voicePin(27,'Cut this part, too long.'),4000)];},
@@ -1411,11 +1410,10 @@ Object.assign(act,{
  drawColor(el){RV.color=el.dataset.c;$$('.dsw').forEach(b=>b.classList.toggle('on',b===el));},
  openChat(el){const k=el.dataset.k;S.inbox.forEach(m=>{if(m.by===k)m.u=0;});go('thread',{k});},
  dInfo(){const p=rvP();if(!p)return;if(p.drafts.length)act.sendAsk();else act.approve();},
- sendAsk(){const p=rvP();const n=p.drafts.length,ed=edName(p),left=p.rounds-p.round;openSheet(`<span class="tag violet">Round ${p.round} of ${p.rounds}</span><h3 class="t28" style="margin:14px 0 6px">Send ${n} note${n>1?'s':''} to ${ed}?</h3>
-  <div class="list" style="margin-top:12px"><div class="row"><span class="tx">What happens</span><b class="lab" style="text-align:right">${ed} starts v${p.v+1}</b></div><div class="row"><span class="tx">v${p.v+1} due</span><b class="lab">${dueD(p.due)}</b></div><div class="row"><span class="tx">Rounds left after this</span><b class="lab">${left}</b></div><div class="row"><span class="tx">Payment</span><b class="lab">Nothing now</b></div></div>
-  <p class="meta" style="margin:12px 0 0">You can’t edit notes after sending. You’ll get a notification when v${p.v+1} is up.</p>
-  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn-main" style="flex:1" data-act="sendNotes">Send notes</button><button class="btn-sec" data-act="closeSheet">Not yet</button></div>`);},
- approveNo(){const p=rvP();closeSheet();if(!p)return;toast(`Still on v${p.v} · nothing paid`);setTimeout(()=>{RV.mode=null;drawBottom();},50);},
+ sendAsk(){const p=rvP();const n=p.drafts.length,ed=edName(p),left=p.rounds-p.round;openSheet(`<h3 class="t20" style="margin:2px 0 8px">Send ${n} note${n>1?'s':''} to ${ed}?</h3>
+  <p class="meta" style="margin:0;font-size:15px;line-height:1.45">${ed} starts v${p.v+1}, due ${dueD(p.due)} · ${left} round${left===1?'':'s'} left after this · <b style="color:#fff;font-weight:600">nothing to pay now</b>. Notes can’t be edited after sending.</p>
+  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn-main" style="flex:1" data-act="sendNotes">Send notes</button><button class="btn-sec" style="flex:1" data-act="closeSheet">Keep editing</button></div>`);},
+ approveNo(){const p=rvP();closeSheet();if(!p)return;toast(`Still reviewing v${p.v} · nothing paid`);setTimeout(()=>{RV.mode=null;drawBottom();},50);},
  mTab(el){S.mtab=el.dataset.t;refresh();},
  seeProg(){S.filter={status:'progress',types:[],sort:'Newest'};go('all');},
  editDraft(el){const p=rvP();const d=p.drafts.find(x=>x.id==el.dataset.nid);if(!d)return;closeSheet();setTimeout(()=>addNoteAt(d.att,d),420);},
