@@ -1,0 +1,477 @@
+/**
+ * Small pieces the prototype reuses everywhere: tags, avatars, covers,
+ * the slanted main button, section headers and list rows.
+ */
+import { Image } from 'expo-image';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
+import Svg, { Defs, LinearGradient as SvgGradient, Polygon, Stop, Text as SvgText } from 'react-native-svg';
+
+import { Icon, type IconName } from '@/components/brand/icons';
+import { Color, Font } from '@/constants/brand';
+import { person } from '@/lib/people';
+import { usePendingPhoto } from '@/lib/my-photo';
+import { useAuth } from '@/providers/auth-provider';
+import { useCover, mmss, type Project, type TagTone } from '@/lib/projects';
+
+/* ---------- slanted shape (clip-path: polygon(s 0, 100% 0, calc(100% - s) 100%, 0 100%)) ---------- */
+
+function SlantFill({ width, height, slant, color }: { width: number; height: number; slant: number; color: string }) {
+  if (!width) return null;
+  return (
+    <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Polygon points={`${slant},0 ${width},0 ${width - slant},${height} 0,${height}`} fill={color} />
+    </Svg>
+  );
+}
+
+/* ---------- tag (.tag): one slanted label for the whole app ---------- */
+
+/** Every tag leans the same way: 9 pt across for every 24 pt of height. */
+const SLANT_PER_PT = 9 / 24;
+
+export type AnyTagTone = TagTone | 'svip' | 'glass';
+
+const TAG_BG: Record<Exclude<AnyTagTone, 'svip'>, string> = {
+  violet: Color.violet,
+  yellow: Color.yellow,
+  grey: Color.control,
+  glass: 'rgba(0,0,0,0.6)', // over video (compare v2 | v3)
+};
+
+/**
+ * The prototype's .tag: a parallelogram (top edge shifted right, both sides cut at the
+ * same slant), Big Shoulders 14 caps, black text on the colour (white on grey / glass).
+ * "svip" is the violet → blue gradient used for the SVIP plan.
+ */
+export function Tag({ label, tone, height = 20, style }: { label: string; tone: AnyTagTone; height?: number; style?: StyleProp<ViewStyle> }) {
+  const [w, setW] = useState(0);
+  const slant = height * SLANT_PER_PT;
+  const light = tone === 'grey' || tone === 'glass';
+  return (
+    <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)} style={[styles.tag, { height, paddingHorizontal: Math.max(9, slant + 3) }, style]}>
+      {w > 0 && (
+        <Svg width={w} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+          {tone === 'svip' && (
+            <Defs>
+              <SvgGradient id="svipFill" x1="0" y1="0.4" x2="1" y2="0.6">
+                <Stop offset="0" stopColor={Color.violet} />
+                <Stop offset="1" stopColor={Color.blue} />
+              </SvgGradient>
+            </Defs>
+          )}
+          <Polygon points={`${slant},0 ${w},0 ${w - slant},${height} 0,${height}`} fill={tone === 'svip' ? 'url(#svipFill)' : TAG_BG[tone]} />
+        </Svg>
+      )}
+      <Text style={[styles.tagText, light && { color: Color.white }]} numberOfLines={1}>
+        {label.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+/* ---------- chip (.chip): slanted outline, same angle as Tag ---------- */
+
+/**
+ * The prototype's .chip: a parallelogram (top edge shifted right) with a 1 pt grey
+ * outline that follows the slanted sides; selected = filled white with black text.
+ * Same lean as <Tag> (9 pt across for every 24 pt of height). 32 pt high, Geist 14.
+ */
+export function Chip({
+  label,
+  icon,
+  iconSize = 16,
+  on = false,
+  onPress,
+  height = 32,
+  width,
+  disabled,
+  accessibilityLabel,
+  style,
+  children,
+}: {
+  label?: string;
+  icon?: IconName;
+  iconSize?: number;
+  on?: boolean;
+  onPress?: () => void;
+  height?: number;
+  width?: number;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+}) {
+  const [w, setW] = useState(width ?? 0);
+  const slant = height * SLANT_PER_PT;
+  const fg = on ? Color.black : Color.white;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ selected: on, disabled: !!disabled }}
+      disabled={disabled || !onPress}
+      onPress={onPress}
+      hitSlop={{ top: Math.max(0, (44 - height) / 2), bottom: Math.max(0, (44 - height) / 2) }}
+      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}
+      style={({ pressed }) => [styles.chip, { height, paddingHorizontal: Math.round(slant + 6) }, width !== undefined && { width, paddingHorizontal: 0 }, pressed && { opacity: 0.7 }, style]}>
+      {w > 0 && (
+        <Svg width={w} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Polygon
+            points={`${slant + 0.5},0.5 ${w - 0.5},0.5 ${w - slant - 0.5},${height - 0.5} 0.5,${height - 0.5}`}
+            fill={on ? Color.white : 'none'}
+            stroke={on ? Color.white : '#3A3A42'}
+            strokeWidth={1}
+          />
+        </Svg>
+      )}
+      {/* One row on top of the outline, so icons stay visible on a white (selected) chip. */}
+      <View style={styles.chipRow}>
+        {icon && <Icon name={icon} size={iconSize} color={fg} />}
+        {label !== undefined && (
+          <Text style={[styles.chipText, { color: fg }]} numberOfLines={1}>
+            {label}
+          </Text>
+        )}
+        {children}
+      </View>
+    </Pressable>
+  );
+}
+
+/* ---------- avatar: coloured circle with the initial ---------- */
+
+export function Avatar({ k, size = 24 }: { k: string; size?: number }) {
+  const p = person(k);
+  const { profile } = useAuth();
+  const justPicked = usePendingPhoto();
+  // "M" is you: your photo (the one you just picked, while it uploads) and your initial.
+  const mine = k === 'M';
+  const photo = mine ? (justPicked ?? profile?.avatar_url) : null;
+  const letter = mine ? (profile?.name?.trim()[0] ?? 'M').toUpperCase() : k;
+  return (
+    <View style={[styles.avatar, { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 }]}>
+      <View style={[styles.avatarFill, { width: size, height: size, borderRadius: size / 2, backgroundColor: p.color, overflow: 'hidden' }]}>
+        {photo && <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />}
+        {/* 13 is our smallest size, so the letter never goes below it. The 14 px dots in
+            top bars have no letter, like the prototype (.topbar .av { font-size: 0 }). */}
+        {size > 14 && !photo && (
+          // Drawn with SVG so the letter sits exactly in the middle of the circle at every
+          // size (Text boxes add font padding that pushes it off-centre on iOS).
+          <Svg width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <SvgText
+              x="50%"
+              y="50%"
+              dy={letterSize(size) * 0.04}
+              textAnchor="middle"
+              alignmentBaseline="central"
+              fontFamily={Font.bold}
+              fontSize={letterSize(size)}
+              fill={Color.black}>
+              {letter}
+            </SvgText>
+          </Svg>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function letterSize(size: number) {
+  return Math.max(13, Math.round(size * 0.45));
+}
+
+export function AvatarStack({ keys, size = 24 }: { keys: string[]; size?: number }) {
+  return (
+    <View style={styles.avatarStack}>
+      {keys.map((k, i) => (
+        <View key={k + i} style={i > 0 && { marginLeft: -7 }}>
+          <Avatar k={k} size={size} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/* ---------- 3:4 cover with the time in the corner (.cv34) ---------- */
+
+export function Cover34({ project, width, radius = 8, showTime = true }: { project: Project; width: number; radius?: number; showTime?: boolean }) {
+  const source = useCover(project);
+  return (
+    <View style={[styles.cover, { width, height: (width * 4) / 3, borderRadius: radius }]}>
+      {source && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />}
+      {showTime && (
+        <View style={styles.cut}>
+          <Text style={styles.cutText}>{mmss(project.duration_seconds)}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ---------- slanted main button (Home "+ New project") ---------- */
+
+export function SlantButton({ label, icon, onPress }: { label: string; icon?: IconName; onPress: () => void }) {
+  const [w, setW] = useState(0);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={({ pressed }) => [styles.slantButton, pressed && { transform: [{ translateY: 1 }] }]}>
+      {({ pressed }) => (
+        <>
+          <SlantFill width={w} height={48} slant={22} color={pressed ? Color.violetDeep : Color.violet} />
+          {icon && <Icon name={icon} size={20} strokeWidth={2.6} color={pressed ? Color.white : Color.black} />}
+          <Text style={[styles.slantText, pressed && { color: Color.white }]}>{label.toUpperCase()}</Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+/* ---------- prototype .btn-main: 48 high, radius 12, Big Shoulders 20 ---------- */
+
+export function BigButton({
+  label,
+  onPress,
+  disabled,
+  loading,
+  tone = 'violet',
+  style,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  tone?: 'violet' | 'control' | 'white';
+  style?: StyleProp<ViewStyle>;
+}) {
+  const bg = tone === 'violet' ? Color.violet : tone === 'white' ? Color.white : Color.control;
+  const fg = tone === 'control' ? Color.white : Color.black;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
+      disabled={disabled || loading}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.big,
+        { backgroundColor: bg },
+        disabled && { backgroundColor: Color.control },
+        pressed && (tone === 'violet' ? { backgroundColor: Color.violetDeep, transform: [{ translateY: 1 }] } : { transform: [{ scale: 0.97 }] }),
+        style,
+      ]}>
+      {({ pressed }) =>
+        loading ? (
+          <ActivityIndicator color={tone === 'control' ? Color.white : Color.black} />
+        ) : (
+          <Text
+            numberOfLines={1}
+            style={[styles.bigText, { color: fg }, disabled && { color: Color.meta }, pressed && tone === 'violet' && { color: Color.white }]}>
+            {label.toUpperCase()}
+          </Text>
+        )
+      }
+    </Pressable>
+  );
+}
+
+/* ---------- section header: "IN PROGRESS · 7      See all ›" ---------- */
+
+export function Section({ title, action, onAction, style }: { title: string; action?: string; onAction?: () => void; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.sec, style]}>
+      <Text style={styles.secText}>{title.toUpperCase()}</Text>
+      {action && (
+        <Pressable accessibilityRole="button" onPress={onAction} hitSlop={12}>
+          <Text style={styles.secAction}>{action}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/* ---------- icon button (.ib: 40×40) ---------- */
+
+export function IconButton({
+  name,
+  label,
+  onPress,
+  size = 24,
+  color = Color.white,
+  width = 40,
+  style,
+  children,
+}: {
+  name: IconName;
+  label: string;
+  onPress: () => void;
+  size?: number;
+  color?: string;
+  width?: number;
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={{ top: 2, bottom: 2, left: (44 - width) / 2 + 2, right: (44 - width) / 2 + 2 }}
+      style={({ pressed }) => [styles.ib, { width }, pressed && { backgroundColor: Color.surface }, style]}>
+      <Icon name={name} size={size} color={color} />
+      {children}
+    </Pressable>
+  );
+}
+
+/* ---------- toggle (.toggle) ---------- */
+
+export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: on }}
+      onPress={() => onChange(!on)}
+      hitSlop={8}
+      style={[styles.toggle, on && { backgroundColor: Color.violet }]}>
+      <View style={[styles.knob, on && { transform: [{ translateX: 18 }] }]} />
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  tag: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  chipText: {
+    flexShrink: 1,
+    fontFamily: Font.semibold,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  tagText: {
+    fontFamily: Font.display,
+    fontSize: 14,
+    lineHeight: 18,
+    paddingTop: 1,
+    letterSpacing: 0.56,
+    color: Color.black,
+  },
+  // The black ring (box-shadow 0 0 0 2px #000) sits outside the avatar without taking space.
+  avatar: {
+    margin: -2,
+    backgroundColor: Color.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Centred exactly: line box = font size, no extra font padding (Android), centred by flex.
+  avatarStack: {
+    flexDirection: 'row',
+  },
+  cover: {
+    overflow: 'hidden',
+    backgroundColor: Color.surface,
+  },
+  cut: {
+    position: 'absolute',
+    left: 4,
+    bottom: 4,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+  },
+  cutText: {
+    fontFamily: Font.mono,
+    fontSize: 13,
+    lineHeight: 16,
+    color: Color.white,
+  },
+  slantButton: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  slantText: {
+    fontFamily: Font.display,
+    fontSize: 20,
+    lineHeight: 25,
+    paddingTop: 2,
+    letterSpacing: 0.6,
+    color: Color.black,
+  },
+  big: {
+    height: 48,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bigText: {
+    fontFamily: Font.display,
+    fontSize: 20,
+    lineHeight: 25,
+    paddingTop: 2,
+    letterSpacing: 0.6,
+  },
+  sec: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 22,
+    marginBottom: 10,
+  },
+  secText: {
+    fontFamily: Font.semibold,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 1.4,
+    color: Color.meta,
+  },
+  secAction: {
+    fontFamily: Font.semibold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Color.white,
+  },
+  ib: {
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggle: {
+    width: 46,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#3A3A42',
+    padding: 3,
+  },
+  knob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Color.white,
+  },
+});

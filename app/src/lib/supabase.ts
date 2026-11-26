@@ -1,4 +1,4 @@
-import 'expo-sqlite/localStorage/install';
+import '@/lib/local-storage';
 
 import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
@@ -41,4 +41,20 @@ export type Profile = {
   avatar_url: string | null;
   /** Empty until "Set up your profile" is finished. */
   onboarded_at: string | null;
+  // From 009 (optional until it has been run).
+  city?: string | null;
+  /** Your own project types ("+ New type"), 011. */
+  my_types?: string[];
+  bio?: string | null;
+  plan?: 'free' | 'vip' | 'svip';
+  trial_ends_at?: string | null;
+  ai_credits?: number;
+  notify_on?: boolean;
+  quiet_start?: string;
+  quiet_end?: string;
+  notify_versions?: boolean;
+  notify_replies?: boolean;
+  notify_more_time?: boolean;
+  notify_messages?: boolean;
+  notify_payments?: boolean;
 };

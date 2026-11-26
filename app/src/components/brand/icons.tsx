@@ -94,3 +94,4 @@ export function Icon({
 }) {
   return <SvgXml xml={xmlFor(name, strokeWidth)} width={size} height={size} color={color} />;
 }
+
